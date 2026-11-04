@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.mjs\"" }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Edit|Write|MultiEdit|Bash|PowerShell", "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect_harness.mjs\"" }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint_on_edit.mjs\"" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/stage_gate.mjs\"" }] }
+    ]
+  }
+}

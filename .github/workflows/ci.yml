@@ -1,0 +1,23 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx eslint .
+      - run: npx vitest run
+      - run: npx vite build
+      # smoke checks only; e2e needs real browsers + real Supabase and runs on the user's Mac
+      - run: for f in smoke_checks/[!_]*.mjs; do node "$f" || exit 1; done

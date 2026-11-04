@@ -252,7 +252,7 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
 **[design]** = a note in `docs/design/` must say `Status: approved` before any code.
 **(needs the user)** = ends by handing the user plain steps.
 
-- [ ] **H0: Scaffold + harness.** Vite + Phaser "hello" scene; ESLint with the dependency rule;
+- [x] **H0: Scaffold + harness.** Vite + Phaser "hello" scene; ESLint with the dependency rule;
   Vitest; Playwright (Chromium + WebKit installed); `scripts/smoke.mjs`, `progress_view.mjs`,
   `harness_common.mjs`; `.claude/settings.json` + 3 hooks; `deploy.yml` + `ci.yml`; `?test=1` →
   `window.__TR.state()`. DoD: smoke passes, the e2e test loads the page in both browsers and
