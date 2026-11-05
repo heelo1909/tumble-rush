@@ -13,7 +13,7 @@ earlier feature. Smoke runs them all after the build and before e2e.
 
 ## Good checks (examples)
 - `h0_assets_logged.mjs`: every file in `public/assets/` is listed in `ASSETS.md`.
-- `h0_no_secrets.mjs`: no `service_role`, `sb_secret_`, or `.env` content in `src/`, `dist/` or git-tracked files.
+- `h0_no_secrets.mjs`: no `service_role`, `sb_secret_` (except supabase-js's own `startsWith("sb_secret_")` check inside `dist/`), or `.env` content in `src/`, `dist/` or git-tracked files.
 - `h0_base_path.mjs`: `dist/index.html` asset URLs start with the repo `base`, not `/`.
 - `g2_obstacle_poses.mjs`: every course's obstacles have valid params and continuous poses for 0–120 s.
 - `g3_courses_valid.mjs`: every `courses/*.json` passes `validateCourse` and has a `minTime`.

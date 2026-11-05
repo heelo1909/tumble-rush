@@ -5,6 +5,11 @@ import { ROOT, fail, pass, read, trackedFiles, walk } from './_util.mjs';
 
 const BAD = [/service_role/i, /sb_secret_/, /SUPABASE_SERVICE/i];
 
+// supabase-js ships the bare prefix as a key-type test (`e.startsWith("sb_secret_")`) in every built page that
+// bundles it. Exactly that library idiom is ignored, and only inside dist/; anything else containing the prefix
+// (a key, a bare string in src/, a split literal) still fails (Decision 12, H1).
+const LIB_IDIOM = /startsWith\(\s*[`'"]sb_secret_[`'"]\s*\)/g;
+
 // A Supabase service-role key is a JWT whose payload says role=service_role (base64, so the word is hidden).
 function hasServiceRoleJwt(text) {
   for (const m of text.matchAll(/eyJ[\w-]+\.(eyJ[\w-]+)\.[\w-]+/g)) {
@@ -26,8 +31,9 @@ const files = [...new Set([...trackedFiles(), ...walk('dist')])]
 const hits = [];
 for (const f of files) {
   if (/\.(png|jpg|jpeg|gif|webp|woff2?|ttf|ico)$/.test(f)) continue;
-  const text = read(f);
-  if (BAD.some((re) => re.test(text)) || hasServiceRoleJwt(text)) hits.push(f);
+  const raw = read(f);
+  const text = f.startsWith('dist/') ? raw.replace(LIB_IDIOM, '') : raw;
+  if (BAD.some((re) => re.test(text)) || hasServiceRoleJwt(raw)) hits.push(f);
 }
 if (files.includes('.env')) hits.push('.env is tracked or not ignored');
 
