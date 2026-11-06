@@ -8,7 +8,7 @@ import { TUNING, STEP } from './tuning.js';
 
 /** @typedef {{left: boolean, right: boolean, jump: boolean, dive: boolean}} Intent */
 /** @typedef {'run' | 'dive' | 'tumble' | 'spring'} Mode */
-/** @typedef {{mode: Mode, t: number, facing: 1 | -1, diveDir: 1 | -1, prevJump: boolean, prevDive: boolean, diveCd: number}} RunnerState */
+/** @typedef {{mode: Mode, t: number, facing: 1 | -1, diveDir: 1 | -1, prevJump: boolean, prevDive: boolean, diveCd: number, hitCd: number}} RunnerState hitCd: seconds left in which nothing can hit the runner again */
 /** @typedef {{vx: number, vy: number, grounded: boolean}} Probe what the body is doing right now */
 /** @typedef {{state: RunnerState, vx: number | null, vy: number | null, events: string[]}} StepResult null = leave it to physics */
 
@@ -19,7 +19,7 @@ const EPS = 1e-9;
 
 /** @param {1 | -1} [facing] @returns {RunnerState} */
 export function newRunnerState(facing = 1) {
-  return { mode: 'run', t: 0, facing, diveDir: facing, prevJump: false, prevDive: false, diveCd: 0 };
+  return { mode: 'run', t: 0, facing, diveDir: facing, prevJump: false, prevDive: false, diveCd: 0, hitCd: 0 };
 }
 
 const approach = (v, target, delta) => (v < target ? Math.min(v + delta, target) : Math.max(v - delta, target));
@@ -48,6 +48,7 @@ export function stepRunner(state, intent, probe, dt = STEP, T = TUNING) {
   let { mode } = state;
   let t = state.t + dt;
   let diveCd = Math.max(0, state.diveCd - dt);
+  const hitCd = Math.max(0, state.hitCd - dt);
   let diveDir = state.diveDir; // a dive keeps the way it started: steering the other way mid-lunge does not turn it round
   let vx = null;
   let vy = null;
@@ -99,7 +100,31 @@ export function stepRunner(state, intent, probe, dt = STEP, T = TUNING) {
     }
   }
 
-  return { state: { mode, t, facing, diveDir, prevJump: !!intent.jump, prevDive: !!intent.dive, diveCd }, vx, vy, events };
+  return { state: { mode, t, facing, diveDir, prevJump: !!intent.jump, prevDive: !!intent.dive, diveCd, hitCd }, vx, vy, events };
+}
+
+/**
+ * The same step for a runner standing on ground that moves (a platform now, a conveyor in G2b). The rules run in
+ * the ground's own frame: how fast the runner moves is measured against the ground, so one standing still on a
+ * platform rides along instead of sliding off its back, and a jump carries the platform's speed. While in the
+ * air the ground does not count. A null (leave it to physics) stays null.
+ * @param {RunnerState} state
+ * @param {Partial<Intent>} intent
+ * @param {Probe} probe the runner's own velocity in the world
+ * @param {{vx: number, vy: number}} ground the velocity of what is under the feet
+ * @param {number} [dt]
+ * @param {import('./tuning.js').Tuning} [T]
+ * @returns {StepResult} velocities in the world frame
+ */
+export function stepRunnerOn(state, intent, probe, ground, dt = STEP, T = TUNING) {
+  if (!probe.grounded || (ground.vx === 0 && ground.vy === 0)) return stepRunner(state, intent, probe, dt, T);
+  const r = stepRunner(state, intent, { vx: probe.vx - ground.vx, vy: probe.vy - ground.vy, grounded: true }, dt, T);
+  return { ...r, vx: r.vx === null ? null : r.vx + ground.vx, vy: r.vy === null ? null : r.vy + ground.vy };
+}
+
+/** Can an obstacle hit this runner now? Not while it is still immune from the last hit. */
+export function canBeHit(state) {
+  return state.hitCd <= 0;
 }
 
 /**
@@ -111,7 +136,7 @@ export function stepRunner(state, intent, probe, dt = STEP, T = TUNING) {
 export function applyHit(state, hit = {}, T = TUNING) {
   const dir = hit.dir !== undefined && hit.dir < 0 ? -1 : 1;
   return {
-    state: { ...state, mode: /** @type {Mode} */ ('tumble'), t: 0 },
+    state: { ...state, mode: /** @type {Mode} */ ('tumble'), t: 0, hitCd: T.hitImmunity },
     vx: dir * (hit.speed ?? T.hitSpeed),
     vy: -(hit.lift ?? T.hitLift),
     spin: dir * (hit.spin ?? T.hitSpin),

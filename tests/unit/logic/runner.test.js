@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TUNING, STEP, jumpApex, jumpAirTime } from '../../../src/logic/tuning.js';
-import { newRunnerState, stepRunner, applyHit, NO_INTENT } from '../../../src/logic/runner.js';
+import { newRunnerState, stepRunner, stepRunnerOn, applyHit, canBeHit, NO_INTENT } from '../../../src/logic/runner.js';
 import { simulate } from '../../../src/logic/runnerSim.js';
 
 const RIGHT = { ...NO_INTENT, right: true };
@@ -253,5 +253,90 @@ describe('state handling', () => {
     const b = simulate({ seconds: 4, intentAt: script, hits: [{ step: 100, dir: 1 }] });
     expect(a).toEqual(b);
     expect(STEP).toBeCloseTo(1 / 60, 12);
+  });
+});
+
+describe('hit immunity (G2a): an obstacle must not re-tumble a runner it has just hit', () => {
+  it('a hit makes the runner immune for hitImmunity seconds, counted down by the step', () => {
+    const h = applyHit(newRunnerState(), { dir: 1 });
+    expect(canBeHit(newRunnerState())).toBe(true);
+    expect(canBeHit(h.state)).toBe(false);
+    let s = h.state;
+    let t = 0;
+    while (!canBeHit(s) && t < 5) {
+      s = stepRunner(s, NO_INTENT, { vx: 0, vy: 0, grounded: true }).state;
+      t += STEP;
+    }
+    expect(t).toBeGreaterThanOrEqual(TUNING.hitImmunity - 2 * STEP);
+    expect(t).toBeLessThanOrEqual(TUNING.hitImmunity + 2 * STEP);
+  });
+
+  it('lasts longer than the tumble and the spring-up together, so one swing cannot chain-tumble', () => {
+    expect(TUNING.hitImmunity).toBeGreaterThan(TUNING.tumbleTime + TUNING.springTime);
+  });
+
+  it('is part of the JSON-safe state', () => {
+    const s = applyHit(newRunnerState(), { dir: -1 }).state;
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+  });
+});
+
+describe('standing on ground that moves (a platform): the rules run in the ground frame', () => {
+  const PLATFORM = { vx: 2, vy: 0 };
+  const idle = (state, probe, ground) => stepRunnerOn(state, NO_INTENT, probe, ground);
+
+  it('a runner at rest on a platform keeps moving with it instead of sliding off the back', () => {
+    const r = idle(newRunnerState(), { vx: 2, vy: 0, grounded: true }, PLATFORM);
+    expect(r.vx).toBeCloseTo(2, 9);
+  });
+
+  it('a runner that is not at the platform speed is brought to it, by the idle braking rate', () => {
+    const r = idle(newRunnerState(), { vx: 0, vy: 0, grounded: true }, PLATFORM);
+    expect(r.vx).toBeCloseTo(TUNING.runDecel * STEP, 9);
+  });
+
+  it('holding right on a platform that moves right reaches platform speed + run speed', () => {
+    let s = newRunnerState();
+    let vx = 2;
+    for (let i = 0; i < 60; i++) {
+      const r = stepRunnerOn(s, RIGHT, { vx, vy: 0, grounded: true }, PLATFORM);
+      s = r.state;
+      vx = r.vx;
+    }
+    expect(vx).toBeCloseTo(2 + TUNING.runSpeed, 6);
+  });
+
+  it('a jump takes the platform velocity with it', () => {
+    const rising = { vx: 1, vy: -2 };
+    const r = stepRunnerOn(newRunnerState(), { ...NO_INTENT, jump: true }, { vx: 1, vy: -2, grounded: true }, rising);
+    expect(r.events).toEqual(['jump']);
+    expect(r.vy).toBeCloseTo(-TUNING.jumpSpeed - 2, 9);
+  });
+
+  it('a runner in the air ignores the ground velocity (the ground frame only applies while touching it)', () => {
+    const air = stepRunnerOn(newRunnerState(), NO_INTENT, { vx: 5, vy: 3, grounded: false }, PLATFORM);
+    const plain = stepRunner(newRunnerState(), NO_INTENT, { vx: 5, vy: 3, grounded: false });
+    expect(air.vx).toBe(plain.vx);
+    expect(air.vy).toBe(plain.vy);
+  });
+
+  it('with ground that does not move it is exactly stepRunner', () => {
+    for (const intent of [NO_INTENT, RIGHT, LEFT, { ...NO_INTENT, jump: true }, { ...NO_INTENT, dive: true }]) {
+      const probe = { vx: 3, vy: 0, grounded: true };
+      const a = stepRunnerOn(newRunnerState(), intent, probe, { vx: 0, vy: 0 });
+      const b = stepRunner(newRunnerState(), intent, probe);
+      expect(a).toEqual(b);
+    }
+  });
+
+  it('a runner tumbling on a platform slows down relative to the platform, not to the world', () => {
+    const h = applyHit(newRunnerState(), { dir: 1, speed: 0 });
+    const r = stepRunnerOn(h.state, NO_INTENT, { vx: 2, vy: 0, grounded: true }, PLATFORM);
+    expect(r.vx).toBeCloseTo(2, 6); // at the platform's speed already: nothing to drag away
+  });
+
+  it('keeps a null (leave it to physics) as null, in the world frame too', () => {
+    const r = stepRunnerOn(applyHit(newRunnerState(), { dir: 1 }).state, NO_INTENT, { vx: 0, vy: 0, grounded: false }, PLATFORM);
+    expect(r.vy).toBeNull();
   });
 });

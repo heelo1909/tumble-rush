@@ -10,13 +10,15 @@ game/
   BootScene.js       (H0) the "hello" title scene; the real menu replaces it later
   scenes/
     MenuScene.js     hands control to the DOM UI (src/ui) for menus/lobby
-    RaceScene.js     builds the course, runners, camera; runs the race loop. G1: only the flat test course,
-                     opened with ?test=1&scene=flat; its race clock is steps/60 and G3 replaces it with logic/clock.js
+    RaceScene.js     builds the course, runners, camera; runs the race loop. G1/G2a: only the test courses,
+                     opened with ?test=1&scene=flat or scene=gallery; its race clock is steps/60 and G3 replaces it with logic/clock.js
   runner/
     Runner.js        Matter body + sprite + animation for ONE runner
     LocalControl.js  keyboard → intent {left,right,jump,dive}
     RemoteControl.js interpolation buffer → moves a static body (fed by src/net)
-  obstacles/         one file per obstacle type from HANDOFF §5.2
+  obstacles/         one file per obstacle type from HANDOFF §5.2. G2a: spinningBar, swingingHammer, pusherWall,
+                     movingPlatform; index.js builds them from the course, moves them each step from logic/obstacles.js
+                     pose() and decides hits on contact; common.js has the static box and the move with velocity
   courses/           course1.json, course2.json, course3.json, test-flat.json, test-gallery.json
   fx/                shake, dust, confetti, banners
   testApi.js         window.__TR (only when ?test=1)
@@ -28,8 +30,12 @@ game/
    Never read the keyboard inside Runner.js.
 2. **Obstacles that move with the race clock get their pose from `src/logic/obstacles.js`.** Matter has no
    kinematic type: use *static* bodies moved each frame with `Matter.Body.setPosition(body, p, true)` /
-   `setAngle(body, a, true)`. The `true` sets velocity, which is what makes a hammer *hit*. If the installed
-   Matter version lacks that argument, set velocity with `Body.setVelocity` too, and log it as a Decision.
+   `setAngle(body, a, true)`. The `true` sets the body's velocity: it is what a runner standing on a moving platform
+   rides along with, and what Matter's overlap correction pushes with. It is NOT what makes a hammer or bar *hit*
+   (G2a measured this): `stepRunner` sets the runner's velocity every step, so Matter's momentum cannot knock a
+   running runner back. A hit is decided in `src/logic/obstacles.js` (`hitOnContact`) and delivered with
+   `Runner.hit()`. If the installed Matter version lacks that argument, set velocity with `Body.setVelocity` too,
+   and log it as a Decision.
 3. **Feel numbers come from `src/logic/tuning.js`.** No magic numbers for speed, jump, gravity or knockback here.
 4. **Fixed timestep.** Matter runs at a fixed 60 Hz step (`matter.runner` / `autoUpdate` set up so a slow
    frame doesn't make physics jumpy). Race time comes from the clock in src/logic, not frame counting.
@@ -53,10 +59,12 @@ game/
 `window.__TR` exists only with `?test=1`. Keep this shape stable; e2e tests depend on it:
 `state()` → `{scene, roomCode, seats:[{id,name,skin,isBot,isHost}], raceTime, runners:[{id,x,y,angle,finished,place,checkpoint}]}`
 `autopilot(on)` · `seed(n)` · `fps()` · `events()` → `[{t, type, data}]`.
-`teleport(checkpointIndex)` exists only for obstacle tests. Never use it in a "full race" test.
-`hit(dir)` (G1) stands in for a hammer until G2: it calls the same `Runner.hit()` an obstacle's contact will call.
+`teleport(checkpointIndex)` (G2a) stands the runner on that checkpoint of the course; only for obstacle tests. Never use it in a "full race" test.
+`clock(t, paused)` (G2a) sets the race clock to t seconds; paused holds it there (obstacles stand still and contacts do not hit), so a screenshot is "at t = 1 s" exactly.
+`state().obstacles` (G2a) → `[{id, type, x, y, angle}]`, pixels and radians, read from the real bodies.
+`hit(dir)` (G1) is the shortcut from before there were obstacles: it calls the same `Runner.hit()` that a bar's or hammer's contact now calls. Obstacle tests do not use it: a hit must come from a real contact.
 Each `runners[i]` also carries `vx, vy` (tiles/s), `mode` ('run'|'dive'|'tumble'|'spring'), `grounded`, `facing`;
-`events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, with `t` in physics seconds.
+`events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, `hit {by, dir, x}` (logged just before its `tumble`), with `t` in physics seconds.
 Changing this shape means updating `tests/e2e/fixtures.js` in the same stage.
 
 ## Done checklist for changes here

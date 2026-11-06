@@ -27,6 +27,9 @@ export const STEP = 1 / 60;
  * @property {number} hitSpeed default horizontal speed of a big hit
  * @property {number} hitLift default upward speed of a big hit
  * @property {number} hitSpin spin of a big hit (rad/s)
+ * @property {number} hitMinSpeed an obstacle must move faster than this (tiles/s) at the point it touches a runner to count as a hit, not a brush
+ * @property {number} hitSideRatio an obstacle moving more up or down than this share of its speed (sideways speed below this fraction) throws a runner away from its middle instead of the way it moves
+ * @property {number} hitImmunity after a hit nothing can hit the runner again for this long (s): longer than the tumble and spring-up, so one swing cannot chain-tumble
  * @property {number} bodyW body width (tiles)
  * @property {number} bodyH body height (tiles)
  * @property {number} groundedMaxRise a runner rising faster than this (tiles/s) is not "on the ground"
@@ -54,6 +57,9 @@ export const TUNING = Object.freeze({
   hitSpeed: 13,
   hitLift: 5,
   hitSpin: 14,
+  hitMinSpeed: 2,
+  hitSideRatio: 0.4,
+  hitImmunity: 1.5,
   bodyW: 0.8,
   bodyH: 1.1,
   groundedMaxRise: 1,

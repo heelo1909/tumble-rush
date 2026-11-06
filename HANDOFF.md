@@ -265,8 +265,12 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
 - [x] **G1: Runner.** Movement, jump, dive, tumble and spring-up on a flat test course. Tuning
   values live in `src/logic/tuning.js`. DoD: e2e drives it with real key presses and asserts movement,
   with screenshots.
-- [ ] **G2: Obstacle kit.** All 8 obstacles; race-clock `pose = f(t)` functions live in `src/logic` with
-  unit tests. DoD: a gallery test course; e2e screenshots each obstacle at t = 0 / 1 / 2 s.
+- [x] **G2a: Obstacle kit, race-clock obstacles.** Spinning bar, swinging hammer, pusher wall, moving platform
+  (split from G2, PROGRESS Decision 34); race-clock `pose = f(t)` functions live in `src/logic` with unit tests;
+  a real hammer/bar contact does the hitting; a runner rides a moving platform. DoD: a gallery test course;
+  e2e screenshots each obstacle at t = 0 / 1 / 2 s.
+- [ ] **G2b: Obstacle kit, contact obstacles.** Bounce pad, seesaw, conveyor belt, falling tiles (the other
+  four of the 8 from §5.2), added to the same gallery. DoD: e2e drives each with real keys, with screenshots.
 - [ ] **G3: Course 1 + solo race flow.** Countdown, timer, checkpoints, respawn, finish, results.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.

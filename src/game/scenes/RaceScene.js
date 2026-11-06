@@ -4,15 +4,17 @@ import { validateCourse } from '../../logic/course.js';
 import { CAT } from '../config.js';
 import { Runner } from '../runner/Runner.js';
 import { LocalControl } from '../runner/LocalControl.js';
+import { buildObstacles } from '../obstacles/index.js';
 import { W, H } from '../BootScene.js';
 import testFlat from '../courses/test-flat.json';
+import testGallery from '../courses/test-gallery.json';
 
-const COURSES = { 'test-flat': testFlat };
+const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery };
 const MAX_EVENTS = 500;
 
 /**
- * G1: the flat test course with one local runner. G3 turns this into the real race scene; the course is
- * data and is built only after validateCourse passes (src/game/CLAUDE.md rule 5).
+ * G1/G2a: a test course (the flat one, or the obstacle gallery) with one local runner. G3 turns this into the real
+ * race scene; the course is data and is built only after validateCourse passes (src/game/CLAUDE.md rule 5).
  */
 export class RaceScene extends Phaser.Scene {
   constructor() {
@@ -20,7 +22,7 @@ export class RaceScene extends Phaser.Scene {
   }
 
   create() {
-    const course = COURSES['test-flat'];
+    const course = COURSES[this.registry.get('course') ?? 'test-flat'];
     const problems = validateCourse(course);
     if (problems.length) throw new Error(`Invalid course ${course.id}: ${problems.join('; ')}`);
     if (course.tile !== TILE) throw new Error(`Course tile ${course.tile} does not match the tuning TILE ${TILE}`);
@@ -29,16 +31,19 @@ export class RaceScene extends Phaser.Scene {
     this.steps = 0;
     this.events_ = [];
     this.groundBodies = [];
+    this.clockPaused = false; // test only (window.__TR.clock): holds the race clock still
     const worldW = course.cols * TILE;
     const worldH = course.rows * TILE;
 
     this.cameras.main.setBackgroundColor('#2d2a55');
     this.makeRunnerTexture();
     this.buildCourse(course, worldW, worldH);
+    this.obstacles = buildObstacles(this, course.obstacles ?? []);
+    this.groundBodies.push(...this.obstacles.ground); // a runner can stand on a moving platform
+    this.obstacles.step(0);
 
-    const x = (course.spawn.col + 0.5) * TILE;
-    const y = (course.spawn.row + 1) * TILE - (TUNING.bodyH * TILE) / 2 - 1;
-    this.runner = new Runner(this, x, y);
+    const at = this.standAt(course.spawn);
+    this.runner = new Runner(this, at.x, at.y);
     this.control = new LocalControl(this);
 
     const cam = this.cameras.main;
@@ -57,6 +62,9 @@ export class RaceScene extends Phaser.Scene {
     // No listener cleanup here: Phaser's Matter plugin shuts down before any scene handler could run
     // (this.matter.world is already null by then) and its World.shutdown removes every listener itself.
     this.matter.world.on(Phaser.Physics.Matter.Events.BEFORE_UPDATE, this.onStep, this);
+    // A runner touching a bar or a hammer: the contact decides, from how fast it is moving there (src/logic/obstacles.js)
+    this.matter.world.on(Phaser.Physics.Matter.Events.COLLISION_START, this.onContact, this);
+    this.matter.world.on(Phaser.Physics.Matter.Events.COLLISION_ACTIVE, this.onContact, this);
 
     this.registry.set('scene', 'race');
   }
@@ -72,13 +80,54 @@ export class RaceScene extends Phaser.Scene {
     if (log.length > MAX_EVENTS) log.shift();
   }
 
+  /** Centre of a runner standing on tile (col, row): feet on the tile's bottom edge. */
+  standAt({ col, row }) {
+    return { x: (col + 0.5) * TILE, y: (row + 1) * TILE - (TUNING.bodyH * TILE) / 2 - 1 };
+  }
+
+  /**
+   * One fixed step. The obstacles go to their pose for the time this step ends at, so after the step the
+   * clock and every obstacle agree (the pose is a pure function of race time: src/logic/obstacles.js).
+   */
   onStep() {
+    this.obstacles.step(this.clockPaused ? this.raceTime() : (this.steps + 1) * STEP);
     this.runner.step(this.control.sample());
-    this.steps += 1;
+    if (!this.clockPaused) this.steps += 1;
+  }
+
+  /** The engine says two bodies touch: if it is a runner and a bar or hammer, maybe a hit. */
+  onContact(event) {
+    if (this.clockPaused) return; // a held clock means nothing is really moving
+    for (const pair of event.pairs) {
+      const a = pair.bodyA.parent;
+      const b = pair.bodyB.parent;
+      const runner = a.plugin?.runner ?? b.plugin?.runner;
+      if (!runner) continue;
+      const hit = this.obstacles.touch(runner === a.plugin?.runner ? b : a, runner, this.raceTime());
+      if (!hit) continue;
+      this.logEvent('hit', { by: hit.by, dir: hit.dir, x: Math.round((runner.body.position.x / TILE) * 100) / 100 });
+      runner.hit(hit.dir);
+    }
+  }
+
+  /** Test only (window.__TR.clock): set the race clock to t seconds, and keep it there if paused. */
+  setClock(t, paused = false) {
+    this.steps = Math.round(t / STEP);
+    this.clockPaused = !!paused;
+    this.obstacles.step(this.raceTime());
+  }
+
+  /** Test only (window.__TR.teleport): stand the runner on checkpoint i of the course. */
+  teleport(i) {
+    const cp = (this.course.checkpoints ?? [])[i];
+    if (!cp) throw new Error(`teleport: the course has no checkpoint ${i}`);
+    const at = this.standAt(cp);
+    this.runner.placeAt(at.x, at.y);
   }
 
   update() {
     const r = this.runner;
+    this.obstacles.render();
     r.render();
     const mode = r.logic.mode;
     const speed = Math.round((Math.abs(r.body.velocity.x) / (TILE * STEP)) * 10) / 10;

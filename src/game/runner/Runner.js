@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TILE, STEP, TUNING } from '../../logic/tuning.js';
-import { newRunnerState, stepRunner, applyHit } from '../../logic/runner.js';
+import { newRunnerState, stepRunnerOn, applyHit } from '../../logic/runner.js';
 import { CAT } from '../config.js';
 
 const { Bodies, Body, Query } = Phaser.Physics.Matter.Matter;
@@ -26,6 +26,7 @@ export class Runner {
     this.w = TUNING.bodyW * TILE;
     this.h = TUNING.bodyH * TILE;
     this.grounded = false;
+    this.ground = { vx: 0, vy: 0 }; // velocity of what we stand on (tiles/s); reused every step
     this.air = null; // jump bookkeeping: where and when it left the ground
     this.springFrom = 0;
 
@@ -37,6 +38,7 @@ export class Runner {
       frictionAir: 0,
       restitution: 0,
       label: `runner:${id}`,
+      plugin: { runner: this }, // a contact finds the runner again through this
       collisionFilter: { category: CAT.LOCAL_RUNNER, mask: CAT.WORLD | CAT.OBSTACLE | CAT.REMOTE_RUNNER | CAT.SENSOR },
     });
     this.inertia = this.body.inertia; // kept for the tumble, when rotation is unlocked
@@ -57,15 +59,40 @@ export class Runner {
     Body.setInertia(this.body, this.inertia);
   }
 
-  /** Feet on something solid and not rising away from it. Uses a thin strip just under the feet. */
-  isGrounded(vyTiles) {
-    if (vyTiles <= -TUNING.groundedMaxRise) return false;
+  /**
+   * Feet on something solid and not rising away from it (measured against that ground: a runner standing on a
+   * platform that rises is not "rising"). Uses a thin strip just under the feet; if several bodies are under
+   * them the highest one counts. Leaves the velocity of that ground in this.ground (zero when airborne).
+   */
+  probeGround(vyTiles) {
+    const g = this.ground;
+    g.vx = 0;
+    g.vy = 0;
     const { x, y } = this.body.position;
     const half = this.w / 2 - TUNING.probeInsetPx;
     const feet = y + this.h / 2;
-    const above = feet - TUNING.probeAbovePx;
-    const below = feet + TUNING.probeBelowPx;
-    return Query.region(this.scene.groundBodies, { min: { x: x - half, y: above }, max: { x: x + half, y: below } }).length > 0;
+    const found = Query.region(this.scene.groundBodies, { min: { x: x - half, y: feet - TUNING.probeAbovePx }, max: { x: x + half, y: feet + TUNING.probeBelowPx } });
+    if (found.length === 0) return false;
+    let top = found[0];
+    for (let i = 1; i < found.length; i++) if (found[i].bounds.min.y < top.bounds.min.y) top = found[i];
+    // a moving obstacle's body velocity (pixels per step) is the speed of the ground under the feet
+    const gvx = top.velocity.x / PX_STEP;
+    const gvy = top.velocity.y / PX_STEP;
+    if (vyTiles - gvy <= -TUNING.groundedMaxRise) return false;
+    g.vx = gvx;
+    g.vy = gvy;
+    return true;
+  }
+
+  /** Put the runner at a spot, standing still and upright (tests and respawn; not a game rule). */
+  placeAt(x, y) {
+    Body.setPosition(this.body, { x, y });
+    Body.setVelocity(this.body, { x: 0, y: 0 });
+    Body.setAngle(this.body, 0);
+    this.lockRotation();
+    this.logic = newRunnerState(this.logic.facing);
+    this.air = null;
+    this.grounded = false;
   }
 
   /**
@@ -78,9 +105,9 @@ export class Runner {
     const vx = b.velocity.x / PX_STEP;
     const vy = b.velocity.y / PX_STEP;
     const wasGrounded = this.grounded;
-    this.grounded = this.isGrounded(vy);
+    this.grounded = this.probeGround(vy);
 
-    const r = stepRunner(this.logic, intent, { vx, vy, grounded: this.grounded });
+    const r = stepRunnerOn(this.logic, intent, { vx, vy, grounded: this.grounded }, this.ground);
     const before = this.logic.mode;
     this.logic = r.state;
 

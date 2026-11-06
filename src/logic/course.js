@@ -1,9 +1,10 @@
 /**
  * Course data checks (HANDOFF 5.3). A course is JSON, never code; the scene builds only from a course
- * that passes. G1 knows the flat test course (size, spawn, ground blocks). G2/G3 add obstacles,
- * checkpoints, finish and minTime here, and extra fields are allowed until then.
+ * that passes. It knows size, spawn, ground blocks (G1), the race-clock obstacles and checkpoints (G2a).
+ * G2b adds the contact obstacles, G3 adds finish and minTime here, and extra fields are allowed until then.
  * @module logic/course
  */
+import { validateObstacle } from './obstacles.js';
 
 const isInt = (v) => Number.isInteger(v);
 const isPosInt = (v) => Number.isInteger(v) && v > 0;
@@ -49,6 +50,36 @@ export function validateCourse(c) {
     errors.push('spawn is outside the course');
   } else if (ground.some((g) => s.col >= g.col && s.col < g.col + g.w && s.row >= g.row && s.row < g.row + g.h)) {
     errors.push('spawn is inside solid ground');
+  }
+
+  const solid = (col, row) => ground.some((g) => col >= g.col && col < g.col + g.w && row >= g.row && row < g.row + g.h);
+
+  if (course.obstacles !== undefined) {
+    if (!Array.isArray(course.obstacles)) {
+      errors.push('obstacles must be an array');
+    } else {
+      course.obstacles.forEach((o, i) => {
+        const problems = validateObstacle(o);
+        for (const p of problems) errors.push(`obstacles[${i}] ${p}`);
+        if (problems.length === 0 && sized) {
+          const within = (x, y) => x >= 0 && y >= 0 && x <= course.cols && y <= course.rows;
+          if (!within(o.col, o.row)) errors.push(`obstacles[${i}] centre must be inside the course`);
+          else if (typeof o.dx === 'number' && !within(o.col + o.dx, o.row + o.dy)) errors.push(`obstacles[${i}] must stay inside the course for its whole trip`);
+        }
+      });
+    }
+  }
+
+  if (course.checkpoints !== undefined) {
+    if (!Array.isArray(course.checkpoints)) {
+      errors.push('checkpoints must be an array');
+    } else {
+      course.checkpoints.forEach((p, i) => {
+        if (!isObject(p) || !isInt(p.col) || !isInt(p.row)) errors.push(`checkpoints[${i}] must be {col, row} with whole numbers`);
+        else if (sized && !inside(p.col, p.row)) errors.push(`checkpoints[${i}] is outside the course`);
+        else if (solid(p.col, p.row)) errors.push(`checkpoints[${i}] is inside solid ground`);
+      });
+    }
   }
 
   return errors;

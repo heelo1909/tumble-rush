@@ -4,7 +4,7 @@ import { TUNING, TILE, jumpApex } from '../../src/logic/tuning.js';
 // G1: the runner on the flat test course, driven by real key presses (tests/e2e/CLAUDE.md rule 1).
 // Durations come from the game's own physics clock (events carry t in fixed-step seconds), not the
 // wall clock, so a slow CI frame cannot make them flaky. window.__TR.hit() is the only shortcut: it
-// stands in for a hammer until G2, and calls the same Runner.hit() the hammer will.
+// stands in for a hammer (from before G2a built real ones), and calls the same Runner.hit() a hammer's contact calls.
 
 const GAP = 2 + TUNING.bodyW; // a two-tile gap plus the body width: the feet must land past it
 

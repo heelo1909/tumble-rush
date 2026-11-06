@@ -19,6 +19,36 @@ describe('validateCourse', () => {
     expect(validateCourse({ ...good(), obstacles: [], checkpoints: [] })).toEqual([]);
   });
 
+  it('checks every obstacle with the obstacle rules and names the one that is wrong', () => {
+    const bar = { type: 'spinning-bar', col: 5, row: 7, length: 3.6, rps: 0.5 };
+    expect(validateCourse({ ...good(), obstacles: [bar] })).toEqual([]);
+    const errors = validateCourse({ ...good(), obstacles: [bar, { ...bar, length: 0 }, { ...bar, type: 'lava' }] });
+    expect(errors.some((e) => e.startsWith('obstacles[1]') && e.includes('length'))).toBe(true);
+    expect(errors.some((e) => e.startsWith('obstacles[2]') && e.includes('type'))).toBe(true);
+    expect(errors.some((e) => e.startsWith('obstacles[0]'))).toBe(false);
+    expect(validateCourse({ ...good(), obstacles: 'bars' })).toContain('obstacles must be an array');
+  });
+
+  it('needs an obstacle to sit inside the course', () => {
+    const bar = { type: 'spinning-bar', col: 99, row: 7, length: 3.6, rps: 0.5 };
+    expect(validateCourse({ ...good(), obstacles: [bar] })).toContainEqual(expect.stringMatching(/^obstacles\[0\].*inside the course/));
+  });
+
+  it('needs a sliding obstacle to stay inside the course for its whole trip, not just to start inside it', () => {
+    const platform = { type: 'moving-platform', col: 30, row: 6, w: 3, h: 0.5, dx: 12, dy: 0, period: 6 };
+    expect(validateCourse({ ...good(), obstacles: [{ ...platform, dx: 5 }] })).toEqual([]);
+    expect(validateCourse({ ...good(), obstacles: [platform] })).toContain('obstacles[0] must stay inside the course for its whole trip');
+    expect(validateCourse({ ...good(), obstacles: [{ ...platform, col: 3, dx: -5 }] })).toContain('obstacles[0] must stay inside the course for its whole trip');
+  });
+
+  it('checks checkpoints: whole col and row, inside the course, not inside solid ground', () => {
+    expect(validateCourse({ ...good(), checkpoints: [{ col: 3, row: 8 }, { col: 20, row: 8 }] })).toEqual([]);
+    expect(validateCourse({ ...good(), checkpoints: 'here' })).toContain('checkpoints must be an array');
+    expect(validateCourse({ ...good(), checkpoints: [{ col: 1.5, row: 8 }] })).toContain('checkpoints[0] must be {col, row} with whole numbers');
+    expect(validateCourse({ ...good(), checkpoints: [{ col: 99, row: 8 }] })).toContain('checkpoints[0] is outside the course');
+    expect(validateCourse({ ...good(), checkpoints: [{ col: 3, row: 10 }] })).toContain('checkpoints[0] is inside solid ground');
+  });
+
   it('rejects things that are not objects', () => {
     for (const bad of [null, undefined, 5, 'course', []]) expect(validateCourse(bad).length).toBeGreaterThan(0);
   });

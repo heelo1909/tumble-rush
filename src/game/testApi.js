@@ -15,6 +15,7 @@ export function installTestApi(game, params) {
       if (r) {
         s.raceTime = r.raceTime();
         s.runners = [r.runner.snapshot()];
+        s.obstacles = r.obstacles.snapshots();
       }
       return s;
     },
@@ -25,9 +26,24 @@ export function installTestApi(game, params) {
       const r = race();
       return r ? r.events_.slice() : [];
     },
+    /** Obstacle tests only: stand the runner on checkpoint i of the course (src/game/CLAUDE.md "testApi.js"). */
+    teleport(i) {
+      const r = race();
+      if (!r) throw new Error('teleport() needs the race scene');
+      r.teleport(i);
+    },
     /**
-     * G1 only: stands in for a hammer or spinning bar until G2 builds them. It calls the very same
-     * Runner.hit() the obstacles will call, so the tumble and spring-up it shows are the real ones.
+     * Obstacle tests only: set the race clock to t seconds; paused = true holds it there, so a screenshot is
+     * "at t = 1 s" exactly. While held, obstacles stand still and contacts do not hit.
+     */
+    clock(t, paused = false) {
+      const r = race();
+      if (!r) throw new Error('clock() needs the race scene');
+      r.setClock(t, paused);
+    },
+    /**
+     * The shortcut from G1, from before there were obstacles: it calls the very same Runner.hit() that a bar's or
+     * hammer's contact calls. Obstacle tests do not use it: there a hit has to come from a real contact.
      */
     hit(dir = 1) {
       const r = race();
