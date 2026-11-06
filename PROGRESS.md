@@ -4,10 +4,10 @@ Read only "Current status" at the start of a prompt. Keep headings exactly as th
 `scripts/progress_view.mjs` and the Stop hook read them.
 
 ## Current status
-- **Next stage:** G1 — Runner
-- **Last stage:** H1
+- **Next stage:** G2 — Obstacle kit
+- **Last stage:** G1
 - **Smoke:** see STATUS.md (generated)
-- **Waiting on the user:** nothing now. Later: decide the netcode send rate when the N2 design note comes (Decision 9).
+- **Waiting on the user:** nothing blocks G2. Two runner feel questions are yours (Decision 33: diving beats running, and what "not from a standstill" means for gap widths). Later: the netcode send rate when the N2 design note comes (Decision 9).
 - **Live tests needed:** none
 
 ## Stages
@@ -15,7 +15,7 @@ Mirror of HANDOFF.md §10. Tick in both places.
 
 - [x] H0 — Scaffold + harness
 - [x] H1 — Supabase + school Wi-Fi probe (needs the user)
-- [ ] G1 — Runner
+- [x] G1 — Runner
 - [ ] G2 — Obstacle kit
 - [ ] G3 — Course 1 + solo race flow
 - [ ] B1 — Bots
@@ -41,7 +41,7 @@ Newest first. Copy the template for each stage.
 - Smoke check added: smoke_checks/g1_runner_feel.mjs (the feel targets from src/game/CLAUDE.md on the real stepRunner via the headless sim: top speed in about 0.25 s, a jump clears a 2-tile gap at full speed but not from a standstill, the dive covers about 3 tiles, a hit tumbles 4–6 tiles with a 0.8 s tumble, a dive is far the fastest way up; the flat course is valid; the race scene is in the build; runner.spec.js presses real keys and has no skip/only and at least 6 tests). Proved red: runAccel 26 → 8, airAccelFactor 0.25 → 1, diveSpeed 11 → 5, hitSpeed 13 → 3 and a `test.skip` on a runner e2e test each made it FAIL with a plain sentence; restored → PASS, files identical to the backups. The e2e spec itself was proved red by the real bug it found: the first run failed 8 of 12 (the four tests that tap Space or Shift to act, in both browsers; the verifier reproduced exactly those 8 by removing the fix), because Phaser clears its "just pressed" flag when the key comes up, so a tap shorter than a frame was lost; fixed with a keydown latch in LocalControl (Decision 26); then 12 of 12.
 - Smoke: PASS (6 checks, vitest 90 passed, e2e 32 passed in chromium+webkit on real Supabase; this is the run after review round 1, the first run was vitest 84 / e2e 30). Measured by the new e2e in BOTH browsers, the same to the hundredth in both browsers except the get-up dive (0.28 s in chromium, 0.28–0.30 s in webkit) and clock jitter (Matter steps at a fixed 60 Hz; the physics clock ran at 1.00–1.05x wall-clock across three runs, including the verifier's): 0.25 s to top speed, 0.15 s to stop, jump 1.9 tiles high and 0.67 s in the air, running jump 4.33 tiles vs 1.7 from a standstill (gap + body width = 2.8), dive 3.11 tiles in 0.28 s, tumble 0.78 s then spring-up 0.25 s, tumbled 4.43 tiles, dive-while-tumbling gets up in 0.28 s (waiting takes about 1.05 s).
 - Shots: .smoke/shots/g1/runner-*.png (24 files, chromium + webkit) — I opened them: start (the critter upright on the checkered ground, a numbered yellow post, controls hint, "mode run speed 0.0 tiles/s on ground"), running-right (speed 6.5, posts have scrolled), tumbling (body tilted in the air, "mode tumble", both browsers alike), diving (leaning forward, "mode dive speed 11.0"), after-running-jump (landed upright, "on ground"), jumping (clear of the ground, "in air"; added after the verifier found no airborne shot). No overlap, nothing black or missing, same layout in both browsers. The dive shot is best effort (a dive lasts 0.28 s). I opened start and upright-again again after the review fixes: the feet now sit on the ground line instead of 5 px into it.
-- Live: pending (smoke:live runs after the push and is logged in the next commit)
+- Live: PASS on https://heelo1909.github.io/tumble-rush/ (commit 5659dd5: deploy and ci green; `npm run smoke:live` = 32 e2e passed in chromium+webkit, 0 flaky, 0 failed, including all 14 runner tests against the deployed bundle). Same measurements as at home: 0.25–0.27 s to top speed, jump 1.9 tiles, dive 3.11 tiles, tumble 4.43 tiles, get-up dive 0.28–0.30 s, physics clock 1.00x (chromium) and 1.04x (webkit) of wall-clock.
 - Review: verifier PASS · code-reviewer APPROVE · product-reviewer n/a (the flat course is reachable only with `?test=1&scene=flat`, so no player can see it yet; the first player-visible stage is G3) (rounds: 2; round 1 code-reviewer CHANGES with 3 BLOCKERs: the scene's shutdown handler that would throw, a skid check measured across a screenshot, and two jump-while-tumbling tests that could not fail; all fixed, round 2 APPROVE, and the reviewer proved the fixed tests can fail by mutating a scratch copy. The verifier ran on the fixed tree: PASS, 3 SHOULDs and 6 NITs applied or logged (Decision 32 i–l), and it reproduced "proved red" for the check, the e2e latch bug and the dive-direction test on scratch copies. After both reviews one test-only change: an airborne jump screenshot in the jump test, with a full smoke run PASS. Declined and deferred → Decisions 21, 24, 32, 33)
 - Decisions: 21–33 below
 - Needs the user: nothing blocks G1, but two feel questions are yours (Decision 33: diving beats running, and what "not from a standstill" really means). To feel it yourself: `npm run dev`, then open http://localhost:5173/tumble-rush/?test=1&scene=flat (arrows or A/D, Space or Up or W to jump, Shift to dive; there is no key for a hit yet, that comes with G2's hammer)

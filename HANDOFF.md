@@ -262,7 +262,7 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   Realtime limits and logs them. `probe.html`: opens a Realtime channel,
   sends a ping every 2 s for 2 minutes between two tabs, and shows green/red with latency. DoD: probe
   e2e passes at home; **the user runs it on school Wi-Fi** and reports the result in PROGRESS.
-- [ ] **G1: Runner.** Movement, jump, dive, tumble and spring-up on a flat test course. Tuning
+- [x] **G1: Runner.** Movement, jump, dive, tumble and spring-up on a flat test course. Tuning
   values live in `src/logic/tuning.js`. DoD: e2e drives it with real key presses and asserts movement,
   with screenshots.
 - [ ] **G2: Obstacle kit.** All 8 obstacles; race-clock `pose = f(t)` functions live in `src/logic` with
