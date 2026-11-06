@@ -1,0 +1,8 @@
+{
+  "id": "test-flat",
+  "tile": 48,
+  "cols": 140,
+  "rows": 12,
+  "spawn": { "col": 4, "row": 8 },
+  "ground": [{ "col": 0, "row": 9, "w": 140, "h": 3 }]
+}

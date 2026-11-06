@@ -5,11 +5,13 @@ Everything you see move. Phaser 3 with **Matter** physics (`physics: { default: 
 ## Layout
 ```
 game/
-  config.js          Phaser game config (scale FIT, 1280×720 base, matter settings, pixelArt false)
+  config.js          collision categories + the Matter settings (fixed 60 Hz). The canvas is 960×540 (W, H exported
+                     by BootScene.js, built in H0), tiles are 48 px (logic/tuning.js TILE)
+  BootScene.js       (H0) the "hello" title scene; the real menu replaces it later
   scenes/
-    BootScene.js     preload assets, then → MenuScene
     MenuScene.js     hands control to the DOM UI (src/ui) for menus/lobby
-    RaceScene.js     builds the course, runners, camera; runs the race loop
+    RaceScene.js     builds the course, runners, camera; runs the race loop. G1: only the flat test course,
+                     opened with ?test=1&scene=flat; its race clock is steps/60 and G3 replaces it with logic/clock.js
   runner/
     Runner.js        Matter body + sprite + animation for ONE runner
     LocalControl.js  keyboard → intent {left,right,jump,dive}
@@ -52,6 +54,9 @@ game/
 `state()` → `{scene, roomCode, seats:[{id,name,skin,isBot,isHost}], raceTime, runners:[{id,x,y,angle,finished,place,checkpoint}]}`
 `autopilot(on)` · `seed(n)` · `fps()` · `events()` → `[{t, type, data}]`.
 `teleport(checkpointIndex)` exists only for obstacle tests. Never use it in a "full race" test.
+`hit(dir)` (G1) stands in for a hammer until G2: it calls the same `Runner.hit()` an obstacle's contact will call.
+Each `runners[i]` also carries `vx, vy` (tiles/s), `mode` ('run'|'dive'|'tumble'|'spring'), `grounded`, `facing`;
+`events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, with `t` in physics seconds.
 Changing this shape means updating `tests/e2e/fixtures.js` in the same stage.
 
 ## Done checklist for changes here

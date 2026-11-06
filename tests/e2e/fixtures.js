@@ -17,8 +17,9 @@ export const test = base.extend({
 });
 export { expect };
 
-export async function gamePage(page, { seed = 1 } = {}) {
-  await page.goto(`./?test=1&ns=test-${runId}-&seed=${seed}`);
+export async function gamePage(page, { seed = 1, scene } = {}) {
+  const extra = scene ? `&scene=${scene}` : '';
+  await page.goto(`./?test=1&ns=test-${runId}-&seed=${seed}${extra}`);
   await page.waitForFunction(() => window.__TR && window.__TR.state().scene !== 'boot');
   return page;
 }
