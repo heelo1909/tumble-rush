@@ -257,7 +257,7 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   `harness_common.mjs`; `.claude/settings.json` + 3 hooks; `deploy.yml` + `ci.yml`; `?test=1` →
   `window.__TR.state()`. DoD: smoke passes, the e2e test loads the page in both browsers and
   screenshots it, and the hooks fire (shown in the log).
-- [ ] **H1: Supabase + school Wi-Fi probe (needs the user).** The user creates the Supabase project
+- [x] **H1: Supabase + school Wi-Fi probe (needs the user).** The user creates the Supabase project
   and the GitHub repo with Pages turned on (plain steps). Claude looks up Supabase's current free-tier
   Realtime limits and logs them. `probe.html`: opens a Realtime channel,
   sends a ping every 2 s for 2 minutes between two tabs, and shows green/red with latency. DoD: probe
