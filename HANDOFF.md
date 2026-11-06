@@ -143,8 +143,11 @@ this API plus real keyboard input, never reaching into Phaser internals.
 **Race-clock obstacles are pure functions of race time** (`pose = f(t)`), so every laptop shows them
 in the same place at the same moment, with nothing sent over the network.
 Matter has no "kinematic" body type. These are **static bodies moved every frame** with
-`Matter.Body.setPosition/setAngle(body, value, true)` (the `true` updates velocity, so a moving hammer
-actually knocks runners back). G2 proves that this hits hard enough.
+`Matter.Body.setPosition/setAngle(body, value, true)` (the `true` gives the body the velocity of its move,
+so a moving platform carries the runner standing on it and a pusher wall pushes with it). A bar's or
+hammer's hit is not left to Matter's momentum, because a runner's own rules set its velocity every step:
+the hit is decided from the pose function when the bodies touch and delivered as a tumble (G2a measured
+4.4–4.8 tiles in both browsers, on target).
 
 ### 5.3 Courses
 - Data, not code: `src/game/courses/<id>.json` (tile layout, obstacles with parameters,
