@@ -3,7 +3,7 @@ import { TILE, STEP, TUNING } from '../../logic/tuning.js';
 import { newRunnerState, stepRunnerOn, applyHit } from '../../logic/runner.js';
 import { CAT } from '../config.js';
 
-const { Bodies, Body, Query } = Phaser.Physics.Matter.Matter;
+const { Bodies, Body, Query, Vertices } = Phaser.Physics.Matter.Matter;
 const PX_STEP = TILE * STEP; // tiles/s -> Matter velocity (pixels per 60 Hz step)
 const wrap = (a) => ((((a + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) - Math.PI;
 const round = (v, p = 100) => Math.round(v * p) / p;
@@ -29,6 +29,7 @@ export class Runner {
     this.ground = { vx: 0, vy: 0 }; // velocity of what we stand on (tiles/s); reused every step
     this.air = null; // jump bookkeeping: where and when it left the ground
     this.springFrom = 0;
+    this.probePoint = { x: 0, y: 0 }; // reused every step by underFeet()
 
     // A rounded capsule (HANDOFF 5.1). No friction: the rules set the speed, not the ground.
     this.body = Bodies.rectangle(x, y, this.w, this.h, {
@@ -62,9 +63,11 @@ export class Runner {
   /**
    * Feet on something solid and not rising away from it (measured against that ground: a runner standing on a
    * platform that rises is not "rising"). Uses a thin strip just under the feet; if several bodies are under
-   * them the highest one counts. Leaves the velocity of that ground in this.ground (zero when airborne).
+   * them the highest one counts. Leaves the velocity of that ground in this.ground (zero when airborne): the
+   * speed of the very spot under the feet, so a tilting seesaw plank counts at its turning speed there, plus a
+   * conveyor's surface speed (a belt's body does not move, its top does).
    */
-  probeGround(vyTiles) {
+  probeGround(vxTiles, vyTiles) {
     const g = this.ground;
     g.vx = 0;
     g.vy = 0;
@@ -72,16 +75,50 @@ export class Runner {
     const half = this.w / 2 - TUNING.probeInsetPx;
     const feet = y + this.h / 2;
     const found = Query.region(this.scene.groundBodies, { min: { x: x - half, y: feet - TUNING.probeAbovePx }, max: { x: x + half, y: feet + TUNING.probeBelowPx } });
-    if (found.length === 0) return false;
-    let top = found[0];
-    for (let i = 1; i < found.length; i++) if (found[i].bounds.min.y < top.bounds.min.y) top = found[i];
-    // a moving obstacle's body velocity (pixels per step) is the speed of the ground under the feet
-    const gvx = top.velocity.x / PX_STEP;
-    const gvy = top.velocity.y / PX_STEP;
-    if (vyTiles - gvy <= -TUNING.groundedMaxRise) return false;
+    let top = null;
+    for (const f of found) {
+      // a tilted body's box is bigger than the body: ask the body itself whether it is really under the feet
+      if (f.angle !== 0 && !this.underFeet(f, x, half, feet)) continue;
+      if (top === null || f.bounds.min.y < top.bounds.min.y) top = f;
+    }
+    if (top === null) return false;
+    // a moving obstacle's body velocity (pixels per step) is the speed of the ground under the feet; a turning one adds
+    // omega x r, the spot's own speed, and a conveyor adds its surface speed
+    const surface = top.plugin?.surface;
+    const gvx = (top.velocity.x - top.angularVelocity * (feet - top.position.y)) / PX_STEP + (surface ? surface.vx : 0);
+    const gvy = (top.velocity.y + top.angularVelocity * (x - top.position.x)) / PX_STEP + (surface ? surface.vy : 0);
+    // On a tilted plank a runner who runs up the slope is rising, but along the ground, not away from it: the speed the
+    // surface itself rises at under a runner moving at that sideways speed is not "leaving the ground".
+    const slopeVy = top.angle === 0 ? 0 : (vxTiles - gvx) * Math.tan(top.angle);
+    if (vyTiles - gvy - slopeVy <= -TUNING.groundedMaxRise) return false;
     g.vx = gvx;
     g.vy = gvy;
     return true;
+  }
+
+  /** Is any of three spots under the feet (left, middle, right, as far down as the probe reaches) inside this tilted body? */
+  underFeet(body, x, half, feet) {
+    const py = feet + TUNING.probeBelowPx - 0.5;
+    const p = this.probePoint;
+    for (const px of [x - half, x, x + half]) {
+      p.x = px;
+      p.y = py;
+      if (Vertices.contains(body.vertices, p)) return true;
+    }
+    return false;
+  }
+
+  /** A bounce pad throws the runner up at vy (tiles/s, negative = up): the same as a jump, only harder. */
+  launch(vyTiles) {
+    const b = this.body;
+    Body.setVelocity(b, { x: b.velocity.x, y: vyTiles * PX_STEP });
+    this.air = { x0: b.position.x, y0: b.position.y, t0: this.scene.raceTime(), rise: 0 };
+    this.scene.logEvent('bounce', { x: round(b.position.x / TILE), vy: round(vyTiles) });
+  }
+
+  /** Vertical speed of the body in tiles/s, down positive. */
+  vyTiles() {
+    return this.body.velocity.y / PX_STEP;
   }
 
   /** Put the runner at a spot, standing still and upright (tests and respawn; not a game rule). */
@@ -105,7 +142,7 @@ export class Runner {
     const vx = b.velocity.x / PX_STEP;
     const vy = b.velocity.y / PX_STEP;
     const wasGrounded = this.grounded;
-    this.grounded = this.probeGround(vy);
+    this.grounded = this.probeGround(vx, vy);
 
     const r = stepRunnerOn(this.logic, intent, { vx, vy, grounded: this.grounded }, this.ground);
     const before = this.logic.mode;

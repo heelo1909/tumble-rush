@@ -11,6 +11,10 @@ import { pose } from '../../src/logic/obstacles.js';
 
 const gallery = JSON.parse(readFileSync(new URL('../../src/game/courses/test-gallery.json', import.meta.url), 'utf8'));
 const BAYS = ['spinning-bar', 'swinging-hammer', 'pusher-wall', 'moving-platform'];
+// G2b added four contact obstacles to the same gallery (tests/e2e/contact.spec.js). This spec is about the race-clock
+// four: it picks them out of the lists by type (they stay at indices 0-3, so BAR..PLATFORM and the checkpoints are unchanged).
+const clockOnly = (list) => list.filter((o) => BAYS.includes(o.type));
+const clockObstacles = clockOnly(gallery.obstacles);
 const BAR = 0;
 const HAMMER = 1;
 const PUSHER = 2;
@@ -27,10 +31,10 @@ const wrap = (a) => ((((a + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI 
 /** Open the gallery, put the race clock back to 0 (so every test starts from the same moment) and wait for the runner. */
 async function ready(page) {
   await gamePage(page, { scene: 'gallery' });
-  await waitFor(page, () => {
+  await waitFor(page, (n) => {
     const s = window.__TR.state();
-    return s.scene === 'race' && s.runners.length === 1 && s.runners[0].grounded && s.obstacles.length === 4;
-  });
+    return s.scene === 'race' && s.runners.length === 1 && s.runners[0].grounded && s.obstacles.length === n;
+  }, gallery.obstacles.length);
   await page.evaluate(() => window.__TR.clock(0, false));
 }
 
@@ -41,9 +45,10 @@ const teleport = async (page, i) => {
 
 /** Check every obstacle in a state against the pure pose() at the state's own race time. */
 function expectPoses(s) {
-  expect(s.obstacles.map((o) => o.type)).toEqual(gallery.obstacles.map((o) => o.type));
-  s.obstacles.forEach((o, i) => {
-    const want = pose(o.type, gallery.obstacles[i], s.raceTime);
+  const mine = clockOnly(s.obstacles);
+  expect(mine.map((o) => o.type)).toEqual(clockObstacles.map((o) => o.type));
+  mine.forEach((o, i) => {
+    const want = pose(o.type, clockObstacles[i], s.raceTime);
     expect(Math.abs(o.x - want.x * TILE), `${o.type} x at t=${s.raceTime}`).toBeLessThan(1);
     expect(Math.abs(o.y - want.y * TILE), `${o.type} y at t=${s.raceTime}`).toBeLessThan(1);
     expect(Math.abs(wrap(o.angle - want.angle)), `${o.type} angle at t=${s.raceTime}`).toBeLessThan(0.01);
@@ -96,10 +101,10 @@ test('a running clock that is still below 0 (the countdown) leaves every obstacl
     await page.waitForTimeout(250);
     samples.push(await state(page));
   }
-  const at0 = gallery.obstacles.map((o) => pose(o.type, o, 0));
+  const at0 = clockObstacles.map((o) => pose(o.type, o, 0));
   for (const s of samples) {
     expect(s.raceTime, 'still counting down').toBeLessThan(0);
-    s.obstacles.forEach((o, i) => {
+    clockOnly(s.obstacles).forEach((o, i) => {
       expect(Math.abs(o.x - at0[i].x * TILE), `${o.type} x at t=${s.raceTime}`).toBeLessThan(1);
       expect(Math.abs(o.y - at0[i].y * TILE), `${o.type} y at t=${s.raceTime}`).toBeLessThan(1);
       expect(Math.abs(wrap(o.angle - at0[i].angle)), `${o.type} angle at t=${s.raceTime}`).toBeLessThan(0.01);

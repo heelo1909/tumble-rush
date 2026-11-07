@@ -30,6 +30,13 @@ export const STEP = 1 / 60;
  * @property {number} hitMinSpeed an obstacle must move faster than this (tiles/s) at the point it touches a runner to count as a hit, not a brush
  * @property {number} hitSideRatio an obstacle moving more up or down than this share of its speed (sideways speed below this fraction) throws a runner away from its middle instead of the way it moves
  * @property {number} hitImmunity after a hit nothing can hit the runner again for this long (s): longer than the tumble and spring-up, so one swing cannot chain-tumble
+ * @property {number} padSpeed a bounce pad launches a runner straight up at this speed (tiles/s): apex 4.8 tiles at 18, far above a jump
+ * @property {number} beltSpeed the top of a conveyor belt moves this fast (tiles/s) unless the course says otherwise: slower than a run, so a runner can always make way against it
+ * @property {number} tileDropDelay a falling tile drops this long after it was first touched (s; HANDOFF 5.2)
+ * @property {number} tileRespawn a fallen tile comes back this long after it dropped (s; HANDOFF 5.2)
+ * @property {number} seesawMaxTilt a seesaw's stop: the plank tips no further than this (radians)
+ * @property {number} seesawLevel the spring that brings an empty seesaw level (1/s^2)
+ * @property {number} seesawDamping the damping on the seesaw's swing (1/s)
  * @property {number} bodyW body width (tiles)
  * @property {number} bodyH body height (tiles)
  * @property {number} groundedMaxRise a runner rising faster than this (tiles/s) is not "on the ground"
@@ -60,6 +67,13 @@ export const TUNING = Object.freeze({
   hitMinSpeed: 2,
   hitSideRatio: 0.4,
   hitImmunity: 1.5,
+  padSpeed: 18,
+  beltSpeed: 3,
+  tileDropDelay: 0.6,
+  tileRespawn: 5,
+  seesawMaxTilt: 0.3,
+  seesawLevel: 6,
+  seesawDamping: 3,
   bodyW: 0.8,
   bodyH: 1.1,
   groundedMaxRise: 1,

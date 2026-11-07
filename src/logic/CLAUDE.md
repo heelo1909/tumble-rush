@@ -8,6 +8,7 @@ where fast unit tests are real proof, so keep as much decision-making here as po
 |---|---|
 | `clock.js` | race time, the countdown, clock-offset math (median of N ping/pong samples) |
 | `obstacles.js` | `pose(type, params, t)` → `{x, y, angle}` for every race-clock obstacle (HANDOFF §5.2) |
+| `contact.js` | the contact obstacles of HANDOFF §5.2 (bounce pad, seesaw, conveyor, falling tiles): their validation, `bounceLaunch`, `beltSurface`, the falling tile's state machine (`touchTile`, `stepTile`) and the seesaw's stop and levelling spring (`seesawAssist`). No `pose(t)`: what they do depends on who touches them |
 | `course.js` | `validateCourse(json)`: tile grid, obstacles, checkpoints, finish, `minTime`; returns a list of errors |
 | `race.js` | race state machine: lobby → countdown → racing → ending → results; placement, the 30 s end timer, ordering by distance for unfinished runners |
 | `coins.js` | coins per placement (HANDOFF §5.5) |

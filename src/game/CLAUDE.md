@@ -16,10 +16,14 @@ game/
     Runner.js        Matter body + sprite + animation for ONE runner
     LocalControl.js  keyboard → intent {left,right,jump,dive}
     RemoteControl.js interpolation buffer → moves a static body (fed by src/net)
-  obstacles/         one file per obstacle type from HANDOFF §5.2. G2a: spinningBar, swingingHammer, pusherWall,
-                     movingPlatform; index.js builds them from the course, moves them each step from logic/obstacles.js
-                     pose() and decides hits on contact; common.js has the static box and the move with velocity
-  courses/           course1.json, course2.json, course3.json, test-flat.json, test-gallery.json
+  obstacles/         one file per obstacle type from HANDOFF §5.2. G2a (race clock): spinningBar, swingingHammer, pusherWall,
+                     movingPlatform. G2b (contact): bouncePad (a sensor), seesaw (a real dynamic body on a pin), conveyor
+                     (a surface speed, `plugin.surface`), fallingTiles (a row, one body and one timer each). index.js builds
+                     them from the course, moves the race-clock ones each step from logic/obstacles.js pose(), steps the
+                     others, and hands every contact to the obstacle (`touch`: a hit, a launch, a timer); common.js has the
+                     static box and the move with velocity. The rules of the contact four are pure, in logic/contact.js.
+  courses/           course1.json, course2.json, course3.json, test-flat.json, test-gallery.json (8 bays: the four race-clock
+                     obstacles, then pad, seesaw, conveyor, tiles; teleport(i) stands the runner at the start of bay i)
   fx/                shake, dust, confetti, banners
   testApi.js         window.__TR (only when ?test=1)
 ```
@@ -61,10 +65,10 @@ game/
 `autopilot(on)` · `seed(n)` · `fps()` · `events()` → `[{t, type, data}]`.
 `teleport(checkpointIndex)` (G2a) stands the runner on that checkpoint of the course; only for obstacle tests. Never use it in a "full race" test.
 `clock(t, paused)` (G2a) sets the race clock to t seconds; paused holds it there (obstacles stand still and contacts do not hit), so a screenshot is "at t = 1 s" exactly.
-`state().obstacles` (G2a) → `[{id, type, x, y, angle}]`, pixels and radians, read from the real bodies.
+`state().obstacles` (G2a) → `[{id, type, x, y, angle}]`, pixels and radians, read from the real bodies. A row of falling tiles (G2b) adds `tiles: ['solid'|'armed'|'fallen', ...]`; a seesaw's `angle` is its plank's.
 `hit(dir)` (G1) is the shortcut from before there were obstacles: it calls the same `Runner.hit()` that a bar's or hammer's contact now calls. Obstacle tests do not use it: a hit must come from a real contact.
 Each `runners[i]` also carries `vx, vy` (tiles/s), `mode` ('run'|'dive'|'tumble'|'spring'), `grounded`, `facing`;
-`events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, `hit {by, dir, x}` (logged just before its `tumble`), with `t` in physics seconds.
+`events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, `hit {by, dir, x}` (logged just before its `tumble`), `bounce {x, vy}` (a pad launched the runner; its `land` follows) and `tile {i, phase, x}` (a falling tile became `armed`, `fallen` or `solid` again), with `t` in physics seconds.
 Changing this shape means updating `tests/e2e/fixtures.js` in the same stage.
 
 ## Done checklist for changes here

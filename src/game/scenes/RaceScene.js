@@ -103,11 +103,20 @@ export class RaceScene extends Phaser.Scene {
       const b = pair.bodyB.parent;
       const runner = a.plugin?.runner ?? b.plugin?.runner;
       if (!runner) continue;
-      const hit = this.obstacles.touch(runner === a.plugin?.runner ? b : a, runner, this.raceTime());
-      if (!hit) continue;
-      this.logEvent('hit', { by: hit.by, dir: hit.dir, x: Math.round((runner.body.position.x / TILE) * 100) / 100 });
-      runner.hit(hit.dir);
+      const effect = this.obstacles.touch(runner === a.plugin?.runner ? b : a, runner, this.raceTime());
+      if (!effect) continue;
+      if (effect.kind === 'launch') {
+        runner.launch(effect.vy); // a bounce pad
+      } else {
+        this.logEvent('hit', { by: effect.by, dir: effect.dir, x: Math.round((runner.body.position.x / TILE) * 100) / 100 });
+        runner.hit(effect.dir);
+      }
     }
+  }
+
+  /** The Matter bodies of every runner in the race (a tile will not come back on top of one). */
+  runnerBodies() {
+    return [this.runner.body];
   }
 
   /** Test only (window.__TR.clock): set the race clock to t seconds, and keep it there if paused. */
@@ -127,7 +136,7 @@ export class RaceScene extends Phaser.Scene {
 
   update() {
     const r = this.runner;
-    this.obstacles.render();
+    this.obstacles.render(this.raceTime());
     r.render();
     const mode = r.logic.mode;
     const speed = Math.round((Math.abs(r.body.velocity.x) / (TILE * STEP)) * 10) / 10;

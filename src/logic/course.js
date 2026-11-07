@@ -4,7 +4,8 @@
  * G2b adds the contact obstacles, G3 adds finish and minTime here, and extra fields are allowed until then.
  * @module logic/course
  */
-import { validateObstacle } from './obstacles.js';
+import { validateObstacle, OBSTACLE_TYPES } from './obstacles.js';
+import { CONTACT_TYPES, validateContactObstacle, contactBounds, seesawHitsGround } from './contact.js';
 
 const isInt = (v) => Number.isInteger(v);
 const isPosInt = (v) => Number.isInteger(v) && v > 0;
@@ -59,11 +60,20 @@ export function validateCourse(c) {
       errors.push('obstacles must be an array');
     } else {
       course.obstacles.forEach((o, i) => {
-        const problems = validateObstacle(o);
+        const type = isObject(o) ? o.type : undefined;
+        const contact = CONTACT_TYPES.includes(type);
+        const known = contact || OBSTACLE_TYPES.includes(type);
+        const problems = !known && isObject(o)
+          ? [`type must be one of: ${[...OBSTACLE_TYPES, ...CONTACT_TYPES].join(', ')}`]
+          : (contact ? validateContactObstacle(o) : validateObstacle(o));
         for (const p of problems) errors.push(`obstacles[${i}] ${p}`);
         if (problems.length === 0 && sized) {
           const within = (x, y) => x >= 0 && y >= 0 && x <= course.cols && y <= course.rows;
-          if (!within(o.col, o.row)) errors.push(`obstacles[${i}] centre must be inside the course`);
+          if (contact) {
+            const b = contactBounds(o.type, o);
+            if (b.x0 < 0 || b.y0 < 0 || b.x1 > course.cols || b.y1 > course.rows) errors.push(`obstacles[${i}] must be inside the course`);
+            else if (o.type === 'seesaw' && seesawHitsGround(o, ground)) errors.push(`obstacles[${i}] would tip into solid ground (lift the pivot, or cut a notch in the ground under the ends)`);
+          } else if (!within(o.col, o.row)) errors.push(`obstacles[${i}] centre must be inside the course`);
           else if (typeof o.dx === 'number' && !within(o.col + o.dx, o.row + o.dy)) errors.push(`obstacles[${i}] must stay inside the course for its whole trip`);
         }
       });

@@ -1,12 +1,18 @@
 import { matterGravity } from '../logic/tuning.js';
 
-/** Collision categories, defined once (src/game/CLAUDE.md rule 6). */
-export const CAT = Object.freeze({
+const CATEGORIES = {
   WORLD: 0x0001,
   LOCAL_RUNNER: 0x0002,
   REMOTE_RUNNER: 0x0004,
   OBSTACLE: 0x0008,
   SENSOR: 0x0010,
+};
+
+/** Collision categories, defined once (src/game/CLAUDE.md rule 6). */
+export const CAT = Object.freeze({
+  ...CATEGORIES,
+  /** What an obstacle collides with: every runner, local or remote. Not the ground, not other obstacles. */
+  RUNNERS: CATEGORIES.LOCAL_RUNNER | CATEGORIES.REMOTE_RUNNER,
 });
 
 /**

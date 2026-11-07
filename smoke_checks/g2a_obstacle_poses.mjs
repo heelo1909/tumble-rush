@@ -27,6 +27,7 @@ for (const { file, json } of courses) {
   const problems = validateCourse(json);
   if (problems.length) fail(`${file} is not a valid course: ${problems[0]}`);
   for (const [i, o] of (json.obstacles ?? []).entries()) {
+    if (!OBSTACLE_TYPES.includes(o.type)) continue; // G2b's contact obstacles have no pose = f(t): smoke_checks/g2b_contact_obstacles.mjs covers them
     obstacleCount++;
     const name = `${file} obstacles[${i}] (${o.type})`;
     const period = o.type === 'spinning-bar' ? 1 / Math.abs(o.rps) : o.period;
@@ -57,6 +58,7 @@ const gallery = courses.find((c) => c.file === 'test-gallery.json').json;
 const kinds = new Set(gallery.obstacles.map((o) => o.type));
 for (const type of OBSTACLE_TYPES) if (!kinds.has(type)) fail(`the gallery course has no ${type}`);
 for (const o of gallery.obstacles) {
+  if (!OBSTACLE_TYPES.includes(o.type)) continue; // a contact obstacle (G2b): see g2b_contact_obstacles.mjs
   let hits = 0;
   // walk a point that sits on the obstacle's own body (its centre, and a point towards its end) through ten seconds
   const { w } = bodySize(o.type, o);

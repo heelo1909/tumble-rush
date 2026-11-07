@@ -35,7 +35,7 @@ user's Mac, against a **real Supabase project**, with **real key presses**, and 
 6. **Never** `test.skip`, `.only`, `fixme`, or raise a timeout to make red go green. Flaky → `B-NNN`.
 
 ## Spec files (grow by stage)
-`boot.spec.js` (H0) · `probe.spec.js` (H1) · `runner.spec.js` (G1) · `obstacles.spec.js` (G2) ·
+`boot.spec.js` (H0) · `probe.spec.js` (H1) · `runner.spec.js` (G1) · `obstacles.spec.js` (G2a, race-clock) · `contact.spec.js` (G2b, contact) ·
 `race.solo.spec.js` (G3) · `bots.finish.spec.js` (B1) · `multiplayer.rooms.spec.js` (N1) ·
 `multiplayer.race.spec.js` (N2) · `multiplayer.results.spec.js` (N3) · `shop.spec.js` (P1) ·
 `perf.spec.js` (U1) · `screens.spec.js` (U1).

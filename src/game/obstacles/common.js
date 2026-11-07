@@ -14,14 +14,15 @@ const where = { x: 0, y: 0 }; // reused every step: Body.setPosition only reads 
 /**
  * A static Matter box for an obstacle (index.js finds the obstacle again from its body). Friction is 0: carrying a runner is the ground-frame rule in src/logic, not friction.
  */
-export function makeBox(scene, type, xPx, yPx, wPx, hPx) {
+export function makeBox(scene, type, xPx, yPx, wPx, hPx, extra = {}) {
   return scene.matter.add.rectangle(xPx, yPx, wPx, hPx, {
     isStatic: true,
     friction: 0,
     frictionStatic: 0,
     restitution: 0,
     label: `obstacle:${type}`,
-    collisionFilter: { category: CAT.OBSTACLE, mask: CAT.LOCAL_RUNNER | CAT.REMOTE_RUNNER },
+    collisionFilter: { category: CAT.OBSTACLE, mask: CAT.RUNNERS },
+    ...extra,
   });
 }
 
@@ -41,8 +42,20 @@ export function movePose(body, pose) {
   Body.setPosition(body, where, true);
 }
 
+/**
+ * Is something centred at x (pixels), half a width wide, within a screen of the camera? Phaser skips drawing an image
+ * that is off screen, but never a Graphics object (it has no size of its own), so every Graphics in a long course would
+ * be processed every frame. An obstacle hides its Graphics while this is false. A whole screen of margin, because the
+ * camera moves between the frame the obstacle looks and the frame it is drawn (and glides a long way after a teleport).
+ */
+export function inView(scene, x, halfW) {
+  const cam = scene.cameras.main;
+  return x + halfW > cam.scrollX - cam.width && x - halfW < cam.scrollX + 2 * cam.width;
+}
+
 /** What tests may see (window.__TR.state().obstacles[i]): pixels, and radians rounded to a thousandth. */
 export function snapshotOf(item) {
+  if (item.snapshot) return item.snapshot(); // a row of falling tiles has no single body
   const { position, angle } = item.body;
   return {
     id: `${item.type}-${item.index}`,
