@@ -18,9 +18,15 @@ describe('tuning', () => {
   });
 
   it('keeps the numbers that must stay above zero above zero', () => {
-    for (const k of ['runSpeed', 'runAccel', 'runDecel', 'gravity', 'jumpSpeed', 'diveSpeed', 'diveTime', 'tumbleTime', 'springTime', 'bodyW', 'bodyH']) {
+    for (const k of ['runSpeed', 'runAccel', 'runDecel', 'gravity', 'jumpSpeed', 'diveSpeed', 'diveTime', 'tumbleTime', 'springTime', 'bodyW', 'bodyH', 'countdown', 'respawnDelay', 'goShown']) {
       expect(TUNING[k], k).toBeGreaterThan(0);
     }
+  });
+
+  it('has the race-flow numbers HANDOFF gives: a 3-2-1 countdown (5.4), a respawn after 1 s (5.1)', () => {
+    expect(TUNING.countdown).toBe(3);
+    expect(TUNING.respawnDelay).toBe(1);
+    expect(TUNING.goShown, 'a banner fades within 1.5 s (src/ui/CLAUDE.md rule 5)').toBeLessThanOrEqual(1.5);
   });
 
   it('uses a 60 Hz step and 48 px tiles', () => {

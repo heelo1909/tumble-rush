@@ -1,0 +1,16 @@
+{
+  "id": "test-race",
+  "tile": 48,
+  "cols": 72,
+  "rows": 12,
+  "spawn": { "col": 2, "row": 9 },
+  "ground": [
+    { "col": 0, "row": 10, "w": 16, "h": 2 },
+    { "col": 19, "row": 10, "w": 21, "h": 2 },
+    { "col": 43, "row": 10, "w": 29, "h": 2 }
+  ],
+  "checkpoints": [
+    { "col": 26, "row": 9 },
+    { "col": 50, "row": 9 }
+  ]
+}

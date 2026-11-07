@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { TILE, STEP, TUNING } from '../../logic/tuning.js';
 import { validateCourse } from '../../logic/course.js';
+import { NO_INTENT } from '../../logic/runner.js';
+import { newRace, stepRace, controlsLive } from '../../logic/race.js';
+import { countdownLabel, formatRaceTime, raceTenth } from '../../logic/clock.js';
 import { CAT } from '../config.js';
 import { Runner } from '../runner/Runner.js';
 import { LocalControl } from '../runner/LocalControl.js';
@@ -8,13 +11,18 @@ import { buildObstacles } from '../obstacles/index.js';
 import { W, H } from '../BootScene.js';
 import testFlat from '../courses/test-flat.json';
 import testGallery from '../courses/test-gallery.json';
+import testRace from '../courses/test-race.json';
 
-const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery };
+const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery, 'test-race': testRace };
 const MAX_EVENTS = 500;
+const CAMERA_LEAD = W * 0.1; // the camera's centre sits this far ahead of the runner, so there is more to see in front
 
 /**
- * G1/G2a: a test course (the flat one, or the obstacle gallery) with one local runner. G3 turns this into the real
- * race scene; the course is data and is built only after validateCourse passes (src/game/CLAUDE.md rule 5).
+ * One local runner on a course. G1/G2: a free-run test course (the flat one, or the obstacle gallery). G3a adds the
+ * race flow (registry `flow`): a 3-2-1 countdown the runner cannot move through, a race clock and timer, checkpoints,
+ * and a respawn at the last checkpoint after a fall. The rules are in src/logic/race.js; this scene feeds them
+ * the runner's place every physics step and acts on the events. The course is data and is built only after
+ * validateCourse passes (src/game/CLAUDE.md rule 5).
  */
 export class RaceScene extends Phaser.Scene {
   constructor() {
@@ -28,7 +36,15 @@ export class RaceScene extends Phaser.Scene {
     if (course.tile !== TILE) throw new Error(`Course tile ${course.tile} does not match the tuning TILE ${TILE}`);
 
     this.course = course;
-    this.steps = 0;
+    this.flow = this.registry.get('flow') === true;
+    this.race = this.flow ? newRace() : null; // logic/race.js state; null on the free-run test courses
+    // The race clock counts physics steps (Decision 21); with the flow on it starts 3 s before 0, so it reads -3 in the
+    // countdown and 0 at GO, and obstacles hold their t = 0 pose until then (logic/obstacles.js).
+    this.steps = this.flow ? -Math.round(TUNING.countdown / STEP) : 0;
+    this.hudView = this.registry.get('hud') ?? null; // the DOM HUD from src/ui, handed over by main.js
+    this.hudTenth = NaN; // the tenth of a second and the countdown word the HUD last showed: it is rewritten only when one changes
+    this.hudWord = '';
+    this.flags = [];
     this.events_ = [];
     this.groundBodies = [];
     this.clockPaused = false; // test only (window.__TR.clock): holds the race clock still
@@ -49,14 +65,19 @@ export class RaceScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
     cam.scrollY = worldH - H; // the view never moves up and down, so jumps read clearly
-    cam.startFollow(this.runner.sprite, true, 0.12, 0, -W * 0.1, 0);
+    cam.startFollow(this.runner.sprite, true, 0.12, 0, -CAMERA_LEAD, 0);
 
-    this.hud = this.add.text(16, 12, '', { fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff', lineSpacing: 4 })
+    this.hint = this.add.text(16, 12, '', { fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff', lineSpacing: 4 })
       .setScrollFactor(0).setDepth(50).setStroke('#1b1b2f', 4);
-    this.hud.setText('Arrows / A D run   Up / W / Space jump   Shift dive');
+    this.hint.setText('Arrows / A D run   Up / W / Space jump   Shift dive');
     this.dbg = { mode: '', speed: -1, grounded: null }; // what the debug line shows now: rewrite the text only when it changes
-    this.debug = this.add.text(16, 64, '', { fontFamily: 'monospace', fontSize: '16px', color: '#ffd23f' })
+    // The debug line is for the free-run test courses; the race flow shows only what a player should see (Decision 32g).
+    this.debug = this.flow ? null : this.add.text(16, 64, '', { fontFamily: 'monospace', fontSize: '16px', color: '#ffd23f' })
       .setScrollFactor(0).setDepth(50).setStroke('#1b1b2f', 4);
+    if (this.flow) {
+      this.makeFlags(course);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.hudView?.clear());
+    }
 
     // The rules run once per fixed physics step, in lockstep with Matter (src/game/CLAUDE.md rule 4).
     // No listener cleanup here: Phaser's Matter plugin shuts down before any scene handler could run
@@ -69,7 +90,7 @@ export class RaceScene extends Phaser.Scene {
     this.registry.set('scene', 'race');
   }
 
-  /** Physics time in seconds: fixed steps, not frames, so it matches on every laptop. */
+  /** Physics time in seconds: fixed steps, not frames, so it matches on every laptop. Negative in the countdown. */
   raceTime() {
     return this.steps * STEP;
   }
@@ -91,8 +112,41 @@ export class RaceScene extends Phaser.Scene {
    */
   onStep() {
     this.obstacles.step(this.clockPaused ? this.raceTime() : (this.steps + 1) * STEP);
-    this.runner.step(this.control.sample());
+    // The keys are read every step (that also empties the press latches), but only a runner who may steer gets them:
+    // not in the countdown, not while waiting to be put back (logic/race.js controlsLive).
+    const intent = this.control.sample();
+    this.runner.step(!this.flow || controlsLive(this.race) ? intent : NO_INTENT);
     if (!this.clockPaused) this.steps += 1;
+    if (this.flow) this.stepFlow();
+  }
+
+  /** The race rules for this step: where the runner is in, what happened out. */
+  stepFlow() {
+    const { x, y } = this.runner.body.position;
+    const r = stepRace(this.race, { x: x / TILE, y: y / TILE }, this.course);
+    this.race = r.state;
+    for (const e of r.events) this.onRaceEvent(e);
+  }
+
+  /** What the race rules say happened: log it, and show or do it. */
+  onRaceEvent(e) {
+    const x = Math.round((this.runner.body.position.x / TILE) * 100) / 100;
+    if (e.type === 'go') {
+      this.logEvent('go');
+    } else if (e.type === 'checkpoint') {
+      this.logEvent('checkpoint', { index: e.index, x });
+      this.flags[e.index]?.reach();
+      this.hudView?.toast('Checkpoint!');
+    } else if (e.type === 'fall') {
+      this.logEvent('fall', { x });
+      this.hudView?.toast('Oops!');
+    } else if (e.type === 'respawn') {
+      const at = this.standAt(e);
+      this.runner.placeAt(at.x, at.y);
+      // a cut, not a long pan back across the course: the player sees themselves at the flag the moment they are put back
+      this.cameras.main.centerOnX(at.x + CAMERA_LEAD);
+      this.logEvent('respawn', { checkpoint: e.checkpoint, x: Math.round((at.x / TILE) * 100) / 100 });
+    }
   }
 
   /** The engine says two bodies touch: if it is a runner and a bar or hammer, maybe a hit. */
@@ -121,6 +175,7 @@ export class RaceScene extends Phaser.Scene {
 
   /** Test only (window.__TR.clock): set the race clock to t seconds, and keep it there if paused. */
   setClock(t, paused = false) {
+    if (this.flow) throw new Error('clock() is for the free-run test courses: a race has its own clock (countdown, then racing)');
     this.steps = Math.round(t / STEP);
     this.clockPaused = !!paused;
     this.obstacles.step(this.raceTime());
@@ -141,11 +196,35 @@ export class RaceScene extends Phaser.Scene {
     const mode = r.logic.mode;
     const speed = Math.round((Math.abs(r.body.velocity.x) / (TILE * STEP)) * 10) / 10;
     const d = this.dbg;
-    if (mode !== d.mode || speed !== d.speed || r.grounded !== d.grounded) {
+    if (this.debug && (mode !== d.mode || speed !== d.speed || r.grounded !== d.grounded)) {
       d.mode = mode;
       d.speed = speed;
       d.grounded = r.grounded;
       this.debug.setText(`mode ${mode}   speed ${speed.toFixed(1)} tiles/s   ${r.grounded ? 'on ground' : 'in air'}`);
+    }
+    if (this.flow && this.hudView) {
+      // The HUD shows tenths of a second, so there is nothing new to say until the tenth changes (logic/clock.js raceTenth:
+      // the same cut as the timer text, and the countdown word changes on those boundaries too). The word is compared as
+      // well, so a tuning of goShown that is not a whole tenth could not leave it stale.
+      const tenth = raceTenth(this.race.t);
+      const word = countdownLabel(this.race.t);
+      if (tenth !== this.hudTenth || word !== this.hudWord) {
+        this.hudTenth = tenth;
+        this.hudWord = word;
+        this.hudView.update({ countdown: word, time: formatRaceTime(this.race.t) });
+      }
+    }
+  }
+
+  /** A flag on a pole at each checkpoint: white until the runner passes it, then green. Drawn in code, no files. */
+  makeFlags(course) {
+    for (const cp of course.checkpoints ?? []) {
+      const x = (cp.col + 0.5) * TILE;
+      const feet = (cp.row + 1) * TILE;
+      this.add.rectangle(x, feet - TILE, 6, TILE * 2, 0x1b1b2f).setDepth(2);
+      const cloth = this.add.triangle(x + 3, feet - TILE * 1.55, 0, 0, 0, TILE * 0.8, TILE * 0.95, TILE * 0.4, 0xffffff)
+        .setOrigin(0, 0.5).setStrokeStyle(3, 0x1b1b2f).setDepth(3);
+      this.flags.push({ reach: () => cloth.setFillStyle(0x6bff6b) });
     }
   }
 

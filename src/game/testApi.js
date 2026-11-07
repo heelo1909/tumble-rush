@@ -1,4 +1,5 @@
 import { emptyState } from '../logic/testState.js';
+import { countdownLabel } from '../logic/clock.js';
 
 /** Installs window.__TR only when the URL has ?test=1 (HANDOFF 4.3, src/game/CLAUDE.md "testApi.js"). */
 export function installTestApi(game, params) {
@@ -14,8 +15,16 @@ export function installTestApi(game, params) {
       const r = race();
       if (r) {
         s.raceTime = r.raceTime();
-        s.runners = [r.runner.snapshot()];
+        const me = r.runner.snapshot();
         s.obstacles = r.obstacles.snapshots();
+        if (r.flow) {
+          // the race flow (G3a): phase, the race clock, the countdown word the HUD shows, the last checkpoint passed
+          // (-1 = only the start), falls so far, and seconds until a fallen runner is put back (null = not fallen)
+          const { phase, t, checkpoint, falls, out } = r.race;
+          s.race = { phase, t, countdown: countdownLabel(t), checkpoint, checkpoints: (r.course.checkpoints ?? []).length, falls, respawnIn: out ? out.left : null };
+          me.checkpoint = checkpoint;
+        }
+        s.runners = [me];
       }
       return s;
     },

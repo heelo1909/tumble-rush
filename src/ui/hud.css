@@ -1,0 +1,73 @@
+/* The race HUD (G3a): a countdown, a timer and a short message, laid over the canvas in the corners and the top
+   middle, so they never cover the runner (src/ui/CLAUDE.md rule 5). System font: Google Fonts may be blocked at school.
+   #ui is placed over the canvas by hud.place() (the canvas is letterboxed in a window that is not 16:9), and --u is the
+   picture's width over 1280, so every size scales with it. */
+#ui {
+  position: fixed;
+  inset: 0; /* until the canvas exists and hud.place() has run */
+  pointer-events: none;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ink: #1b1b2f;
+  --u: 1;
+}
+
+.tr-countdown {
+  position: absolute;
+  top: 11%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: calc(128px * var(--u));
+  line-height: 1;
+  font-weight: 900;
+  color: #ffd23f;
+  /* a thick outline that works in every browser (text-stroke plus paint-order does not); em, so it scales with the text */
+  text-shadow:
+    -0.047em -0.047em 0 var(--ink), 0 -0.047em 0 var(--ink), 0.047em -0.047em 0 var(--ink),
+    -0.047em 0 0 var(--ink), 0.047em 0 0 var(--ink),
+    -0.047em 0.047em 0 var(--ink), 0 0.047em 0 var(--ink), 0.047em 0.047em 0 var(--ink),
+    0 0.094em 0 var(--ink);
+}
+.tr-countdown.pop { animation: tr-pop 0.35s ease-out; }
+
+.tr-timer {
+  position: absolute;
+  top: calc(14px * var(--u));
+  right: calc(18px * var(--u));
+  padding: calc(2px * var(--u)) calc(14px * var(--u));
+  font-size: calc(34px * var(--u));
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  background: rgba(27, 27, 47, 0.8);
+  border: calc(3px * var(--u)) solid var(--ink);
+  border-radius: calc(12px * var(--u));
+}
+
+.tr-toast {
+  position: absolute;
+  top: 13%; /* below the controls hint in the top-left corner of the canvas, which a wide message would otherwise cover */
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: calc(44px * var(--u));
+  line-height: 1.1;
+  font-weight: 900;
+  color: #ffffff;
+  opacity: 0;
+  text-shadow:
+    -0.09em -0.09em 0 var(--ink), 0.09em -0.09em 0 var(--ink), -0.09em 0.09em 0 var(--ink), 0.09em 0.09em 0 var(--ink),
+    0 -0.09em 0 var(--ink), 0 0.09em 0 var(--ink), -0.09em 0 0 var(--ink), 0.09em 0 0 var(--ink);
+}
+.tr-toast.show { animation: tr-fade 1.2s ease-out forwards; }
+
+@keyframes tr-pop {
+  from { transform: scale(1.5); }
+  to { transform: scale(1); }
+}
+@keyframes tr-fade {
+  0% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}

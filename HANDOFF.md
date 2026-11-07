@@ -274,7 +274,13 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   e2e screenshots each obstacle at t = 0 / 1 / 2 s.
 - [x] **G2b: Obstacle kit, contact obstacles.** Bounce pad, seesaw, conveyor belt, falling tiles (the other
   four of the 8 from §5.2), added to the same gallery. DoD: e2e drives each with real keys, with screenshots.
-- [ ] **G3: Course 1 + solo race flow.** Countdown, timer, checkpoints, respawn, finish, results.
+- [x] **G3a: Race loop.** Countdown (3-2-1, the runner cannot move through it), race clock and timer, checkpoints,
+  respawn at the last checkpoint after a fall (split from G3, PROGRESS Decision 52); rules in `src/logic/clock.js`
+  and `race.js` with unit tests, the HUD as DOM in `src/ui/hud.js`. Played on a small test course (`?test=1&scene=race`).
+  DoD: e2e with real keys shows the countdown holding the runner, the timer, a checkpoint, and a fall that puts the
+  runner back after 1 s (within the 1.5 s feel target), with screenshots.
+- [ ] **G3b: Course 1 + solo race flow.** Course 1 (60–90 s, teaches 2–3 obstacles then mixes them), finish line,
+  results, and the way in from the title. DoD: e2e plays course 1 with real keys from the countdown to the results.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.
 - [ ] **N1: Rooms [design].** Create/join by code or link, Presence seats, bots fill seats, a friend

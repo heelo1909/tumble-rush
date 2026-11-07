@@ -10,8 +10,12 @@ game/
   BootScene.js       (H0) the "hello" title scene; the real menu replaces it later
   scenes/
     MenuScene.js     hands control to the DOM UI (src/ui) for menus/lobby
-    RaceScene.js     builds the course, runners, camera; runs the race loop. G1/G2a: only the test courses,
-                     opened with ?test=1&scene=flat or scene=gallery; its race clock is steps/60 and G3 replaces it with logic/clock.js
+    RaceScene.js     builds the course, runners, camera; runs the race loop. Test courses opened with ?test=1&scene=flat,
+                     gallery (free run: no countdown, no respawn) or race (G3a: the race flow, registry `flow`: a 3-2-1
+                     countdown the keys cannot move through, the race clock and HUD timer, checkpoint flags, a respawn at the
+                     last checkpoint after a fall, with a camera cut). The rules are logic/race.js `stepRace`, run once per
+                     physics step; the scene acts on its events. The race clock is still steps/60 (it starts at -3 s with the
+                     flow on); N2 swaps the source for a clock shared with the host (Decision 53)
   runner/
     Runner.js        Matter body + sprite + animation for ONE runner
     LocalControl.js  keyboard → intent {left,right,jump,dive}
@@ -22,7 +26,8 @@ game/
                      them from the course, moves the race-clock ones each step from logic/obstacles.js pose(), steps the
                      others, and hands every contact to the obstacle (`touch`: a hit, a launch, a timer); common.js has the
                      static box and the move with velocity. The rules of the contact four are pure, in logic/contact.js.
-  courses/           course1.json, course2.json, course3.json, test-flat.json, test-gallery.json (8 bays: the four race-clock
+  courses/           course1.json, course2.json, course3.json, test-flat.json, test-race.json (G3a: two 3-tile pits, two flags),
+                     test-gallery.json (8 bays: the four race-clock
                      obstacles, then pad, seesaw, conveyor, tiles; teleport(i) stands the runner at the start of bay i)
   fx/                shake, dust, confetti, banners
   testApi.js         window.__TR (only when ?test=1)
@@ -66,6 +71,8 @@ game/
 `teleport(checkpointIndex)` (G2a) stands the runner on that checkpoint of the course; only for obstacle tests. Never use it in a "full race" test.
 `clock(t, paused)` (G2a) sets the race clock to t seconds; paused holds it there (obstacles stand still and contacts do not hit), so a screenshot is "at t = 1 s" exactly.
 `state().obstacles` (G2a) → `[{id, type, x, y, angle}]`, pixels and radians, read from the real bodies. A row of falling tiles (G2b) adds `tiles: ['solid'|'armed'|'fallen', ...]`; a seesaw's `angle` is its plank's.
+`state().race` (G3a) → `null` on the free-run test courses; with the race flow `{phase: 'countdown'|'racing', t, countdown, checkpoint, checkpoints, falls, respawnIn}`: `t` is the race clock (negative in the countdown, equal to `raceTime`), `countdown` the word the HUD shows ('3', '2', '1', 'GO!' or ''), `checkpoint` the last flag passed (-1 = only the start), `respawnIn` seconds until a fallen runner is put back (null = not fallen). `runners[0].checkpoint` is the same index. `clock(t, paused)` throws with the flow on.
+`events()` also has `go`, `checkpoint {index, x}`, `fall {x}` and `respawn {checkpoint, x}` (G3a), `x` in tiles.
 `hit(dir)` (G1) is the shortcut from before there were obstacles: it calls the same `Runner.hit()` that a bar's or hammer's contact now calls. Obstacle tests do not use it: a hit must come from a real contact.
 Each `runners[i]` also carries `vx, vy` (tiles/s), `mode` ('run'|'dive'|'tumble'|'spring'), `grounded`, `facing`;
 `events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, `hit {by, dir, x}` (logged just before its `tumble`), `bounce {x, vy}` (a pad launched the runner; its `land` follows) and `tile {i, phase, x}` (a falling tile became `armed`, `fallen` or `solid` again), with `t` in physics seconds.

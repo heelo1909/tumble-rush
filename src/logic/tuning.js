@@ -37,6 +37,9 @@ export const STEP = 1 / 60;
  * @property {number} seesawMaxTilt a seesaw's stop: the plank tips no further than this (radians)
  * @property {number} seesawLevel the spring that brings an empty seesaw level (1/s^2)
  * @property {number} seesawDamping the damping on the seesaw's swing (1/s)
+ * @property {number} countdown seconds of 3-2-1 before the race starts (HANDOFF 5.4)
+ * @property {number} goShown how long "GO!" stays on screen after the start (s): a banner fades within 1.5 s (src/ui/CLAUDE.md rule 5)
+ * @property {number} respawnDelay a runner who fell off the course is put back at the last checkpoint this long after falling out (s; HANDOFF 5.1)
  * @property {number} bodyW body width (tiles)
  * @property {number} bodyH body height (tiles)
  * @property {number} groundedMaxRise a runner rising faster than this (tiles/s) is not "on the ground"
@@ -74,6 +77,9 @@ export const TUNING = Object.freeze({
   seesawMaxTilt: 0.3,
   seesawLevel: 6,
   seesawDamping: 3,
+  countdown: 3,
+  goShown: 0.8,
+  respawnDelay: 1,
   bodyW: 0.8,
   bodyH: 1.1,
   groundedMaxRise: 1,

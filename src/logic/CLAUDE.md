@@ -6,11 +6,11 @@ where fast unit tests are real proof, so keep as much decision-making here as po
 ## What lives here
 | File (suggested) | Owns |
 |---|---|
-| `clock.js` | race time, the countdown, clock-offset math (median of N ping/pong samples) |
+| `clock.js` | what the race clock says as text: `countdownLabel(t)` (3, 2, 1, GO!), `formatRaceTime(t)` and `raceTenth(t)` (the tenth a time falls in: when the HUD must be redrawn; the word and the text change only on its boundaries, with one shared float allowance) (G3a). Clock-offset math (median of N ping/pong samples) arrives with N2 |
 | `obstacles.js` | `pose(type, params, t)` → `{x, y, angle}` for every race-clock obstacle (HANDOFF §5.2) |
 | `contact.js` | the contact obstacles of HANDOFF §5.2 (bounce pad, seesaw, conveyor, falling tiles): their validation, `bounceLaunch`, `beltSurface`, the falling tile's state machine (`touchTile`, `stepTile`) and the seesaw's stop and levelling spring (`seesawAssist`). No `pose(t)`: what they do depends on who touches them |
 | `course.js` | `validateCourse(json)`: tile grid, obstacles, checkpoints, finish, `minTime`; returns a list of errors |
-| `race.js` | race state machine: lobby → countdown → racing → ending → results; placement, the 30 s end timer, ordering by distance for unfinished runners |
+| `race.js` | race state machine. G3a: ONE runner's `newRace`, `stepRace` (countdown → racing, checkpoints left to right, a fall → `out` for `respawnDelay` → a `respawn` event naming the last checkpoint or the start) and `controlsLive`. Later: finish, ending, results, placement, the 30 s end timer, ordering by distance for unfinished runners |
 | `coins.js` | coins per placement (HANDOFF §5.5) |
 | `skins.js` | the skins catalog (id, name, price, colors, hat) + `canBuy`, `buy` |
 | `save.js` | load/migrate/save `tr.save.v1`; takes a storage object so tests pass a fake |

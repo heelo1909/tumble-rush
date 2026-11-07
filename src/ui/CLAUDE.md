@@ -9,6 +9,16 @@ to read from the next desk, host's Start button) → HUD during the race (timer,
 finisher" banner, the 30 s end countdown) → Results (places, coins earned, Rematch) → Shop (skins
 with prices, owned/equipped).
 
+## Built so far
+`hud.js` + `hud.css` (G3a): `createHud(#ui)` returns `{place(rect), update({countdown, time}), toast(text), clear()}` with the
+test ids `countdown` (128 px at a 1280 px wide picture, upper middle), `timer` (top right) and `toast` (a message that fades
+in 1.2 s, below the controls hint). main.js creates it and hands it to the scene through the Phaser registry, so game code
+never imports ui. `#ui` is a click-through layer in `index.html`; **main.js lays it over the canvas rectangle** (`place`, on
+every resize of the picture), because the canvas is scaled to fit and centred, so in a window that is not 16:9 a layer pinned
+to the window would sit on the letterbox bars. All its sizes scale with the picture (`--u` = picture width / 1280, at least
+0.75). e2e: race.solo.spec.js checks the timer, message and word lie inside the canvas at 1280x800, 1440x900, 1280x1000 and
+1440x780 and after a resize.
+
 ## Rules
 1. **Imports only from `src/logic`.** Screens get data and callbacks from `src/main.js`
    (`showLobby({seats, code, isHost, onStart})`), so they never call net or game code.

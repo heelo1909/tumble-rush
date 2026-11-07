@@ -227,7 +227,7 @@ export class Runner {
       facing: this.logic.facing,
       finished: false,
       place: 0,
-      checkpoint: 0,
+      checkpoint: -1, // the last flag passed, -1 = only the start (the race flow overwrites it: testApi.js)
     };
   }
 }

@@ -49,6 +49,14 @@ describe('validateCourse', () => {
     expect(validateCourse({ ...good(), checkpoints: [{ col: 3, row: 10 }] })).toContain('checkpoints[0] is inside solid ground');
   });
 
+  it('needs checkpoints to run from left to right, so "the last one passed" is well defined (G3a)', () => {
+    const at = (...cols) => cols.map((col) => ({ col, row: 8 }));
+    expect(validateCourse({ ...good(), checkpoints: at(3, 10, 20) })).toEqual([]);
+    expect(validateCourse({ ...good(), checkpoints: at(10, 10) })).toContain('checkpoints[1] must be to the right of checkpoints[0]');
+    expect(validateCourse({ ...good(), checkpoints: at(3, 20, 10) })).toContain('checkpoints[2] must be to the right of checkpoints[1]');
+    expect(validateCourse({ ...good(), checkpoints: at(20, 3) }).some((e) => e.startsWith('checkpoints[1] must be to the right'))).toBe(true);
+  });
+
   it('rejects things that are not objects', () => {
     for (const bad of [null, undefined, 5, 'course', []]) expect(validateCourse(bad).length).toBeGreaterThan(0);
   });

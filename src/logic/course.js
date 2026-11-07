@@ -88,6 +88,11 @@ export function validateCourse(c) {
         if (!isObject(p) || !isInt(p.col) || !isInt(p.row)) errors.push(`checkpoints[${i}] must be {col, row} with whole numbers`);
         else if (sized && !inside(p.col, p.row)) errors.push(`checkpoints[${i}] is outside the course`);
         else if (solid(p.col, p.row)) errors.push(`checkpoints[${i}] is inside solid ground`);
+        // "the last checkpoint passed" only means something if they run from left to right (G3a)
+        const prev = course.checkpoints[i - 1];
+        if (i > 0 && isObject(p) && isObject(prev) && isInt(p.col) && isInt(prev.col) && p.col <= prev.col) {
+          errors.push(`checkpoints[${i}] must be to the right of checkpoints[${i - 1}]`);
+        }
       });
     }
   }
