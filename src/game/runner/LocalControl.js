@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 export class LocalControl {
   /** @param {Phaser.Scene} scene */
   constructor(scene) {
+    this.scene = scene;
     const K = Phaser.Input.Keyboard.KeyCodes;
     this.codes = { up: K.UP, w: K.W, space: K.SPACE, shift: K.SHIFT };
     // true = stop the browser scrolling the page on arrows/space
@@ -19,6 +20,8 @@ export class LocalControl {
     // would otherwise be lost.
     this.latch = { jump: false, dive: false };
     scene.input.keyboard.on('keydown', this.onKeyDown, this);
+    /** the key codes the browser is told not to act on (the page must not scroll on Space or the arrows) */
+    this.captured = Object.values(this.k).map((key) => key.keyCode);
     /** one object reused every step: no allocation in the loop */
     this.intent = { left: false, right: false, jump: false, dive: false };
   }
@@ -29,6 +32,17 @@ export class LocalControl {
     const { up, w, space, shift } = this.codes;
     if (c === up || c === w || c === space) this.latch.jump = true;
     else if (c === shift) this.latch.dive = true;
+  }
+
+  /**
+   * Let go of the keyboard when the race scene stops (G3b). Phaser's own scene shutdown removes the Key objects but
+   * NOT the browser-level captures (they live on the global keyboard manager), so without this the title, and later
+   * the room-code box, would never receive W, A, D, Space or the arrows again after a race (PROGRESS Decision 32c).
+   */
+  destroy() {
+    const keyboard = this.scene.input.keyboard;
+    keyboard.off('keydown', this.onKeyDown, this);
+    keyboard.removeCapture(this.captured);
   }
 
   /** Read the keys for one physics step. */

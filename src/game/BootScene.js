@@ -17,11 +17,14 @@ export class BootScene extends Phaser.Scene {
 
     const ground = this.add.rectangle(W / 2, H - 20, W, 40, 0x4ecdc4);
     this.matter.add.gameObject(ground, { isStatic: true });
-    const box = this.add.rectangle(W / 2, 300, 60, 60, 0xff6b6b).setStrokeStyle(6, 0x1b1b2f);
+    // the Matter test box falls beside the title (G3b put the Play button in the middle, where it used to fall)
+    const box = this.add.rectangle(W * 0.14, 300, 60, 60, 0xff6b6b).setStrokeStyle(6, 0x1b1b2f);
     this.matter.add.gameObject(box, { restitution: 0.6 });
     this.box = box;
 
     this.events.emit('tr-ready');
+    // main.js shows the Play button (src/ui/title.js) over this scene whenever it says so: game code never imports ui
+    this.game.events.emit('title-shown');
     this.registry.set('scene', 'hello');
   }
 }

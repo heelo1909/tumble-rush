@@ -229,6 +229,92 @@ describe('falling off the course', () => {
   });
 });
 
+describe('the finish line (G3b)', () => {
+  const withFinish = () => ({ ...course(), finish: { col: 55 }, minTime: 5 });
+  const NEAR = { x: 54.9, y: 9.45 };
+  const OVER = { x: 55, y: 9.45 };
+
+  it('is crossed when the runner reaches the left edge of its tile: one finish event with the race time, and the race is finished', () => {
+    const c = withFinish();
+    const before = run(racing(), STEP, NEAR, c);
+    expect(ofType(before.events, 'finish')).toHaveLength(0);
+    expect(before.state.phase).toBe('racing');
+
+    const r = run(before.state, STEP, OVER, c);
+    expect(ofType(r.events, 'finish')).toEqual([{ type: 'finish', time: r.state.t }]);
+    expect(r.state.phase).toBe('finished');
+    expect(r.state.t, 'the time is the race clock at the line, after the countdown').toBeGreaterThan(0);
+  });
+
+  it('stops the clock at the line: the time stays what it was, and nothing more happens', () => {
+    const c = withFinish();
+    const done = run(racing(), STEP, OVER, c).state;
+    const later = run(done, 5, OVER, c);
+    expect(later.events).toEqual([]);
+    expect(later.state.t).toBe(done.t);
+    expect(later.state.phase).toBe('finished');
+    // not even a fall or a flag changes anything once the race is over
+    const down = run(done, 3, FALLEN, c);
+    expect(down.events).toEqual([]);
+    expect(down.state).toEqual(done);
+  });
+
+  it('takes the controls away: a runner who has finished may not steer', () => {
+    const c = withFinish();
+    const done = run(racing(), STEP, OVER, c).state;
+    expect(controlsLive(done)).toBe(false);
+  });
+
+  it('does not count a finish for a runner who is below the course, or who is still waiting to be put back', () => {
+    const c = withFinish();
+    const r = run(racing(), STEP, { x: 60, y: course().rows + 1 }, c);
+    expect(ofType(r.events, 'finish')).toHaveLength(0);
+    expect(r.state.phase).toBe('racing');
+    expect(r.state.out).not.toBeNull();
+    // still waiting, with the body now beyond the line
+    const waiting = run(r.state, 0.5, OVER, c);
+    expect(ofType(waiting.events, 'finish')).toHaveLength(0);
+    expect(waiting.state.phase).toBe('racing');
+  });
+
+  it('does not finish in the countdown, even for a runner standing beyond the line', () => {
+    const r = run(newRace(), TUNING.countdown - 0.1, OVER, withFinish());
+    expect(r.events).toEqual([]);
+    expect(r.state.phase).toBe('countdown');
+  });
+
+  it('passes the last flag first when both come in one step: the flag event, then the finish', () => {
+    const r = run(racing(), STEP, { x: 56, y: 5 }, withFinish());
+    expect(r.events.map((e) => e.type)).toEqual(['checkpoint', 'checkpoint', 'checkpoint', 'finish']);
+    expect(r.state.checkpoint).toBe(2);
+  });
+
+  it('does nothing about a finish on a course that has none (the free-run and G3a test courses)', () => {
+    const r = run(racing(), 1, { x: 59, y: 9.45 });
+    expect(ofType(r.events, 'finish')).toHaveLength(0);
+    expect(r.state.phase).toBe('racing');
+  });
+
+  it('keeps the falls and the last checkpoint in the finished state, and stays plain JSON', () => {
+    const c = withFinish();
+    const down = run(racing(), STEP, FALLEN, c).state;
+    const up = run(down, TUNING.respawnDelay, FALLEN, c).state;
+    const done = run(up, STEP, OVER, c).state;
+    expect(done.phase).toBe('finished');
+    expect(done.falls).toBe(1);
+    expect(done.checkpoint).toBe(2);
+    expect(JSON.parse(JSON.stringify(done))).toEqual(done);
+  });
+
+  it('is not changed by what it is given, like every other step', () => {
+    const c = withFinish();
+    const done = run(racing(), STEP, OVER, c).state;
+    const before = JSON.stringify(done);
+    stepRace(done, OVER, c);
+    expect(JSON.stringify(done)).toBe(before);
+  });
+});
+
 describe('stepRace does not touch what it is given', () => {
   it('returns a new state and leaves the old one and the course alone', () => {
     const s = racing();

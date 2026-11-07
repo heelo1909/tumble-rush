@@ -18,9 +18,14 @@ describe('tuning', () => {
   });
 
   it('keeps the numbers that must stay above zero above zero', () => {
-    for (const k of ['runSpeed', 'runAccel', 'runDecel', 'gravity', 'jumpSpeed', 'diveSpeed', 'diveTime', 'tumbleTime', 'springTime', 'bodyW', 'bodyH', 'countdown', 'respawnDelay', 'goShown']) {
+    for (const k of ['runSpeed', 'runAccel', 'runDecel', 'gravity', 'jumpSpeed', 'diveSpeed', 'diveTime', 'tumbleTime', 'springTime', 'bodyW', 'bodyH', 'countdown', 'respawnDelay', 'goShown', 'resultsDelay']) {
       expect(TUNING[k], k).toBeGreaterThan(0);
     }
+  });
+
+  it('shows the results after a beat (G3b): long enough to see the runner cross and stop, not so long that it drags', () => {
+    expect(TUNING.resultsDelay).toBeGreaterThanOrEqual(1);
+    expect(TUNING.resultsDelay).toBeLessThanOrEqual(2.5);
   });
 
   it('has the race-flow numbers HANDOFF gives: a 3-2-1 countdown (5.4), a respawn after 1 s (5.1)', () => {

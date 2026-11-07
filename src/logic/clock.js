@@ -34,6 +34,18 @@ export function countdownLabel(t, T = TUNING) {
 }
 
 /**
+ * The falls line on the results (G3b): "No falls", "1 fall", "3 falls". Anything that is not a count above zero reads
+ * "No falls", and a fraction counts down to a whole number.
+ * @param {number} n how many times the runner fell off the course
+ * @returns {string}
+ */
+export function fallsLabel(n) {
+  const count = typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  if (count === 0) return 'No falls';
+  return count === 1 ? '1 fall' : `${count} falls`;
+}
+
+/**
  * The timer as m:ss.t. Tenths are cut, not rounded, so the timer never shows more time than has passed.
  * Zero before the start and for anything that is not a time.
  * @param {number} t race time in seconds

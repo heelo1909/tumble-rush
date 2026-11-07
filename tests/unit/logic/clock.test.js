@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countdownLabel, formatRaceTime, raceTenth } from '../../../src/logic/clock.js';
+import { countdownLabel, fallsLabel, formatRaceTime, raceTenth } from '../../../src/logic/clock.js';
 import { TUNING, STEP } from '../../../src/logic/tuning.js';
 
 describe('countdownLabel (HANDOFF 5.4: a 3-2-1 countdown, then GO)', () => {
@@ -84,5 +84,20 @@ describe('raceTenth (when the HUD has to be redrawn)', () => {
     }
     // the words 3, 2, 1, GO! and the empty word after it (5), and a new timer text every tenth of the 9 racing seconds (90)
     expect(changes, 'the loop really walked through the countdown and the race').toBeGreaterThanOrEqual(90);
+  });
+});
+
+describe('fallsLabel (the falls line on the results, G3b)', () => {
+  it('says "No falls", "1 fall" and "N falls"', () => {
+    expect(fallsLabel(0)).toBe('No falls');
+    expect(fallsLabel(1)).toBe('1 fall');
+    expect(fallsLabel(2)).toBe('2 falls');
+    expect(fallsLabel(13)).toBe('13 falls');
+  });
+
+  it('says "No falls" for anything that is not a count above zero, and rounds a count down to a whole number', () => {
+    for (const bad of [undefined, null, NaN, -1, Infinity, '3']) expect(fallsLabel(bad), String(bad)).toBe('No falls');
+    expect(fallsLabel(2.9)).toBe('2 falls');
+    expect(fallsLabel(0.4)).toBe('No falls');
   });
 });

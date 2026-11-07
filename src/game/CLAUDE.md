@@ -7,7 +7,8 @@ Everything you see move. Phaser 3 with **Matter** physics (`physics: { default: 
 game/
   config.js          collision categories + the Matter settings (fixed 60 Hz). The canvas is 960×540 (W, H exported
                      by BootScene.js, built in H0), tiles are 48 px (logic/tuning.js TILE)
-  BootScene.js       (H0) the "hello" title scene; the real menu replaces it later
+  BootScene.js       (H0) the "hello" title scene. G3b: on create it says `title-shown` on `game.events`, and main.js then
+                     shows the DOM Play button (src/ui/title.js) over it; the falling test box moved beside the title
   scenes/
     MenuScene.js     hands control to the DOM UI (src/ui) for menus/lobby
     RaceScene.js     builds the course, runners, camera; runs the race loop. Test courses opened with ?test=1&scene=flat,
@@ -15,7 +16,11 @@ game/
                      countdown the keys cannot move through, the race clock and HUD timer, checkpoint flags, a respawn at the
                      last checkpoint after a fall, with a camera cut). The rules are logic/race.js `stepRace`, run once per
                      physics step; the scene acts on its events. The race clock is still steps/60 (it starts at -3 s with the
-                     flow on); N2 swaps the source for a clock shared with the host (Decision 53)
+                     flow on); N2 swaps the source for a clock shared with the host (Decision 53).
+                     G3b: a course with a `finish` gets a checkered ribbon at the line; crossing it (logic/race.js, phase
+                     'finished') stops the clock and takes the controls away, `TUNING.resultsDelay` later the scene says
+                     `race-over {course, time, falls}` on `game.events` and main.js shows the results screen. Stopping the
+                     scene (play again, back to the title) calls LocalControl.destroy() and clears the HUD
   runner/
     Runner.js        Matter body + sprite + animation for ONE runner
     LocalControl.js  keyboard → intent {left,right,jump,dive}
@@ -26,7 +31,7 @@ game/
                      them from the course, moves the race-clock ones each step from logic/obstacles.js pose(), steps the
                      others, and hands every contact to the obstacle (`touch`: a hit, a launch, a timer); common.js has the
                      static box and the move with velocity. The rules of the contact four are pure, in logic/contact.js.
-  courses/           course1.json, course2.json, course3.json, test-flat.json, test-race.json (G3a: two 3-tile pits, two flags),
+  courses/           course1.json, course2.json, course3.json, test-flat.json, test-race.json (G3a: two 3-tile pits, two flags; G3b: a `finish` at column 66 and a `minTime`; the title's Play runs it until G3c),
                      test-gallery.json (8 bays: the four race-clock
                      obstacles, then pad, seesaw, conveyor, tiles; teleport(i) stands the runner at the start of bay i)
   fx/                shake, dust, confetti, banners
@@ -57,6 +62,10 @@ game/
    `onRemoteState(cb)`, `sendLocalState(s)`, `sendFinish(t)`, so it never imports Supabase.
 8. **Performance budget** (school MacBook, 60 fps): ≤ 250 Matter bodies per course, no per-frame
    allocations in update loops, texture atlases rather than many single images, particles capped.
+9. **Give the keyboard back.** `addKeys(..., true)` makes the browser ignore W, A, D, Space and the arrows for the whole
+   page, and Phaser's own scene shutdown does not undo that. RaceScene's SHUTDOWN handler calls `LocalControl.destroy()`
+   (it removes the capture); any new scene that captures keys must do the same, or the title and the room-code box
+   lose them after the first race (G3b, PROGRESS Decision 32c).
 
 ## Feel targets (tune toward these, check them in screenshots/GIF captures)
 - Holding run reaches top speed in ~0.25 s. Jump clears a 2-tile gap at full speed but not from standstill.
@@ -71,8 +80,9 @@ game/
 `teleport(checkpointIndex)` (G2a) stands the runner on that checkpoint of the course; only for obstacle tests. Never use it in a "full race" test.
 `clock(t, paused)` (G2a) sets the race clock to t seconds; paused holds it there (obstacles stand still and contacts do not hit), so a screenshot is "at t = 1 s" exactly.
 `state().obstacles` (G2a) → `[{id, type, x, y, angle}]`, pixels and radians, read from the real bodies. A row of falling tiles (G2b) adds `tiles: ['solid'|'armed'|'fallen', ...]`; a seesaw's `angle` is its plank's.
-`state().race` (G3a) → `null` on the free-run test courses; with the race flow `{phase: 'countdown'|'racing', t, countdown, checkpoint, checkpoints, falls, respawnIn}`: `t` is the race clock (negative in the countdown, equal to `raceTime`), `countdown` the word the HUD shows ('3', '2', '1', 'GO!' or ''), `checkpoint` the last flag passed (-1 = only the start), `respawnIn` seconds until a fallen runner is put back (null = not fallen). `runners[0].checkpoint` is the same index. `clock(t, paused)` throws with the flow on.
-`events()` also has `go`, `checkpoint {index, x}`, `fall {x}` and `respawn {checkpoint, x}` (G3a), `x` in tiles.
+`state().race` (G3a) → `null` on the free-run test courses; with the race flow `{phase: 'countdown'|'racing'|'finished', t, countdown, checkpoint, checkpoints, falls, respawnIn, finishTime}`: `t` is the race clock (negative in the countdown, equal to `raceTime` until the finish, then standing still at the finish time), `countdown` the word the HUD shows ('3', '2', '1', 'GO!' or ''), `checkpoint` the last flag passed (-1 = only the start), `respawnIn` seconds until a fallen runner is put back (null = not fallen), `finishTime` (G3b) the time at the line (null until the finish). `runners[0].checkpoint` is the same index and `runners[0].finished` (G3b) says the line is crossed. `clock(t, paused)` throws with the flow on.
+`events()` also has `go`, `checkpoint {index, x}`, `fall {x}` and `respawn {checkpoint, x}` (G3a) and `finish {time, x}` (G3b), `x` in tiles.
+Out of the scene, on `game.events` (G3b, plain data, so game code never imports ui): `title-shown` (the title scene is up) and `race-over {course, time, falls}` (a finish plus `TUNING.resultsDelay`). main.js listens and shows the Play button and the results screen.
 `hit(dir)` (G1) is the shortcut from before there were obstacles: it calls the same `Runner.hit()` that a bar's or hammer's contact now calls. Obstacle tests do not use it: a hit must come from a real contact.
 Each `runners[i]` also carries `vx, vy` (tiles/s), `mode` ('run'|'dive'|'tumble'|'spring'), `grounded`, `facing`;
 `events()` has `jump`, `land {rise, dx, air}`, `dive`, `tumble`, `spring`, `run`, `hit {by, dir, x}` (logged just before its `tumble`), `bounce {x, vy}` (a pad launched the runner; its `land` follows) and `tile {i, phase, x}` (a falling tile became `armed`, `fallen` or `solid` again), with `t` in physics seconds.

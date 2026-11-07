@@ -4,10 +4,10 @@ import { countdownLabel } from '../logic/clock.js';
 /** Installs window.__TR only when the URL has ?test=1 (HANDOFF 4.3, src/game/CLAUDE.md "testApi.js"). */
 export function installTestApi(game, params) {
   if (params.get('test') !== '1') return;
-  /** the race scene, once it has built its runner */
+  /** the race scene, once it has built its runner and only while it is running: a stopped one (back at the title) is gone, not stale data */
   const race = () => {
     const s = game.scene.getScene('race');
-    return s && s.runner ? s : null;
+    return s && s.runner && s.sys.isActive() ? s : null;
   };
   window.__TR = {
     state() {
@@ -20,9 +20,11 @@ export function installTestApi(game, params) {
         if (r.flow) {
           // the race flow (G3a): phase, the race clock, the countdown word the HUD shows, the last checkpoint passed
           // (-1 = only the start), falls so far, and seconds until a fallen runner is put back (null = not fallen)
+          // G3b: phase 'finished' once the line is crossed; `t` then stands still at the finish time, and `finishTime` says so
           const { phase, t, checkpoint, falls, out } = r.race;
-          s.race = { phase, t, countdown: countdownLabel(t), checkpoint, checkpoints: (r.course.checkpoints ?? []).length, falls, respawnIn: out ? out.left : null };
+          s.race = { phase, t, countdown: countdownLabel(t), checkpoint, checkpoints: (r.course.checkpoints ?? []).length, falls, respawnIn: out ? out.left : null, finishTime: phase === 'finished' ? t : null };
           me.checkpoint = checkpoint;
+          me.finished = phase === 'finished';
         }
         s.runners = [me];
       }

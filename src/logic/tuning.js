@@ -40,6 +40,7 @@ export const STEP = 1 / 60;
  * @property {number} countdown seconds of 3-2-1 before the race starts (HANDOFF 5.4)
  * @property {number} goShown how long "GO!" stays on screen after the start (s): a banner fades within 1.5 s (src/ui/CLAUDE.md rule 5)
  * @property {number} respawnDelay a runner who fell off the course is put back at the last checkpoint this long after falling out (s; HANDOFF 5.1)
+ * @property {number} resultsDelay the results screen comes up this long after the runner crosses the finish line (s): time to see them cross and stop
  * @property {number} bodyW body width (tiles)
  * @property {number} bodyH body height (tiles)
  * @property {number} groundedMaxRise a runner rising faster than this (tiles/s) is not "on the ground"
@@ -80,6 +81,7 @@ export const TUNING = Object.freeze({
   countdown: 3,
   goShown: 0.8,
   respawnDelay: 1,
+  resultsDelay: 1.5,
   bodyW: 0.8,
   bodyH: 1.1,
   groundedMaxRise: 1,

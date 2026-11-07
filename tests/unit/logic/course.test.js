@@ -57,6 +57,48 @@ describe('validateCourse', () => {
     expect(validateCourse({ ...good(), checkpoints: at(20, 3) }).some((e) => e.startsWith('checkpoints[1] must be to the right'))).toBe(true);
   });
 
+  describe('the finish line and minTime (G3b)', () => {
+    const withFinish = (extra = {}) => ({ ...good(), checkpoints: [{ col: 10, row: 8 }], finish: { col: 34 }, minTime: 4, ...extra });
+
+    it('accepts a finish with a minTime, and a course with neither (the free-run test courses)', () => {
+      expect(validateCourse(withFinish())).toEqual([]);
+      expect(validateCourse(good())).toEqual([]);
+    });
+
+    it('needs the finish to be {col} with a whole number inside the course', () => {
+      expect(validateCourse(withFinish({ finish: 34 }))).toContain('finish must be {col} with a whole number');
+      expect(validateCourse(withFinish({ finish: { col: 34.5 } }))).toContain('finish must be {col} with a whole number');
+      expect(validateCourse(withFinish({ finish: {} }))).toContain('finish must be {col} with a whole number');
+      expect(validateCourse(withFinish({ finish: { col: 40 } }))).toContain('finish is outside the course');
+      expect(validateCourse(withFinish({ finish: { col: -1 } }))).toContain('finish is outside the course');
+    });
+
+    it('needs the finish to the right of the spawn and of the last checkpoint, so a race has something to run and every flag comes first', () => {
+      expect(validateCourse(withFinish({ finish: { col: 3 } }))).toContain('finish must be to the right of the spawn');
+      expect(validateCourse(withFinish({ finish: { col: 10 } }))).toContain('finish must be to the right of the last checkpoint');
+      expect(validateCourse(withFinish({ finish: { col: 5 } }))).toContain('finish must be to the right of the last checkpoint');
+      expect(validateCourse(withFinish({ finish: { col: 11 } }))).toEqual([]);
+    });
+
+    it('needs ground from the finish line to the end of the course, so a runner who has finished cannot fall away', () => {
+      const pit = { ground: [{ col: 0, row: 9, w: 36, h: 3 }, { col: 38, row: 9, w: 2, h: 3 }] };
+      expect(validateCourse(withFinish(pit))).toContain('ground must run from the finish to the end of the course');
+      const short = { ground: [{ col: 0, row: 9, w: 36, h: 3 }] };
+      expect(validateCourse(withFinish(short))).toContain('ground must run from the finish to the end of the course');
+      // two blocks that touch are as good as one
+      const joined = { ground: [{ col: 0, row: 9, w: 36, h: 3 }, { col: 36, row: 9, w: 4, h: 3 }] };
+      expect(validateCourse(withFinish(joined))).toEqual([]);
+    });
+
+    it('needs a minTime that is a positive number whenever there is a finish, and no minTime without one', () => {
+      expect(validateCourse(withFinish({ minTime: undefined }))).toContain('a course with a finish needs a minTime');
+      for (const bad of [0, -3, NaN, Infinity, '4']) {
+        expect(validateCourse(withFinish({ minTime: bad })), `minTime ${String(bad)}`).toContain('minTime must be a positive number');
+      }
+      expect(validateCourse({ ...good(), minTime: 4 })).toContain('minTime needs a finish');
+    });
+  });
+
   it('rejects things that are not objects', () => {
     for (const bad of [null, undefined, 5, 'course', []]) expect(validateCourse(bad).length).toBeGreaterThan(0);
   });

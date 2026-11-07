@@ -1,7 +1,7 @@
 /**
  * Course data checks (HANDOFF 5.3). A course is JSON, never code; the scene builds only from a course
- * that passes. It knows size, spawn, ground blocks (G1), the race-clock obstacles and checkpoints (G2a).
- * G2b adds the contact obstacles, G3 adds finish and minTime here, and extra fields are allowed until then.
+ * that passes. It knows size, spawn, ground blocks (G1), the race-clock obstacles and checkpoints (G2a), the
+ * contact obstacles (G2b) and the finish line with its minTime (G3b). Other extra fields are allowed.
  * @module logic/course
  */
 import { validateObstacle, OBSTACLE_TYPES } from './obstacles.js';
@@ -95,6 +95,37 @@ export function validateCourse(c) {
         }
       });
     }
+  }
+
+  // The finish line (G3b): the left edge of tile `col`. A course with one needs a minTime (the fastest anyone could
+  // possibly run it, which the host's sanity check on results uses later); a free-run test course has neither.
+  if (course.finish !== undefined) {
+    const f = course.finish;
+    if (!isObject(f) || !isInt(f.col)) {
+      errors.push('finish must be {col} with a whole number');
+    } else if (sized && (f.col < 0 || f.col >= course.cols)) {
+      errors.push('finish is outside the course');
+    } else {
+      if (isObject(s) && isInt(s.col) && f.col <= s.col) errors.push('finish must be to the right of the spawn');
+      const flags = Array.isArray(course.checkpoints) ? course.checkpoints.filter((p) => isObject(p) && isInt(p.col)) : [];
+      if (flags.length > 0 && f.col <= Math.max(...flags.map((p) => p.col))) errors.push('finish must be to the right of the last checkpoint');
+      // a runner who has crossed the line is still on the course until they stop: no pit between the line and the wall
+      const covered = (col) => ground.some((g) => col >= g.col && col < g.col + g.w);
+      if (sized) {
+        for (let col = f.col; col < course.cols; col++) {
+          if (!covered(col)) {
+            errors.push('ground must run from the finish to the end of the course');
+            break;
+          }
+        }
+      }
+    }
+    if (course.minTime === undefined) errors.push('a course with a finish needs a minTime');
+  } else if (course.minTime !== undefined) {
+    errors.push('minTime needs a finish');
+  }
+  if (course.minTime !== undefined && !(typeof course.minTime === 'number' && Number.isFinite(course.minTime) && course.minTime > 0)) {
+    errors.push('minTime must be a positive number');
   }
 
   return errors;

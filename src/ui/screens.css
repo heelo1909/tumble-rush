@@ -1,0 +1,91 @@
+/* The title's Play button and the results screen (G3b), laid over the canvas like the HUD (hud.css): #ui is placed over the
+   picture by hud.place(), and --u is the picture's width over 1280, so every size here scales with it. System font, thick
+   outlines, bright colours (HANDOFF 1 and 7). Text is at least 18 px at the smallest picture. */
+.tr-title[hidden],
+.tr-results[hidden] {
+  display: none;
+}
+
+.tr-btn {
+  pointer-events: auto; /* #ui itself lets clicks through to the canvas; the buttons take them */
+  font: inherit;
+  font-weight: 900;
+  color: var(--ink);
+  background: #ffd23f;
+  border: calc(5px * var(--u)) solid var(--ink);
+  border-radius: calc(18px * var(--u));
+  box-shadow: 0 calc(6px * var(--u)) 0 var(--ink);
+  padding: calc(8px * var(--u)) calc(34px * var(--u));
+  cursor: pointer;
+}
+/* hover lifts the button; it never changes the fill (a paler yellow made the button under the mouse look disabled) */
+.tr-btn:hover { transform: translateY(calc(-3px * var(--u))); box-shadow: 0 calc(9px * var(--u)) 0 var(--ink); }
+.tr-btn:active { transform: translateY(calc(4px * var(--u))); box-shadow: 0 calc(2px * var(--u)) 0 var(--ink); }
+.tr-btn:focus-visible { outline: calc(5px * var(--u)) solid #ffffff; outline-offset: calc(3px * var(--u)); }
+.tr-btn-quiet { background: #ffffff; }
+
+/* the title: under the "Tumble Rush" the scene draws, clear of the ground along its bottom edge */
+.tr-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(22px * var(--u));
+}
+.tr-btn-play { font-size: calc(64px * var(--u)); padding: calc(6px * var(--u)) calc(88px * var(--u)); }
+.tr-keys {
+  margin: 0;
+  font-size: calc(24px * var(--u));
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 calc(2px * var(--u)) 0 var(--ink), 0 calc(-2px * var(--u)) 0 var(--ink), calc(2px * var(--u)) 0 0 var(--ink), calc(-2px * var(--u)) 0 0 var(--ink);
+}
+
+/* the results: a dimmed picture with one card in the middle (the race is over, so covering the runner is fine) */
+.tr-results {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(27, 27, 47, 0.74);
+  pointer-events: auto;
+}
+.tr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10px * var(--u));
+  padding: calc(18px * var(--u)) calc(60px * var(--u)) calc(26px * var(--u));
+  text-align: center;
+}
+.tr-headline {
+  font-size: calc(128px * var(--u));
+  line-height: 1;
+  font-weight: 900;
+  color: #ffd23f;
+  text-shadow:
+    -0.047em -0.047em 0 var(--ink), 0 -0.047em 0 var(--ink), 0.047em -0.047em 0 var(--ink),
+    -0.047em 0 0 var(--ink), 0.047em 0 0 var(--ink),
+    -0.047em 0.047em 0 var(--ink), 0 0.047em 0 var(--ink), 0.047em 0.047em 0 var(--ink),
+    0 0.094em 0 var(--ink);
+}
+.tr-time {
+  font-size: calc(96px * var(--u));
+  line-height: 1;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  text-shadow: 0 calc(5px * var(--u)) 0 var(--ink), 0 calc(-3px * var(--u)) 0 var(--ink), calc(4px * var(--u)) 0 0 var(--ink), calc(-4px * var(--u)) 0 0 var(--ink);
+}
+.tr-falls {
+  font-size: calc(30px * var(--u));
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: calc(18px * var(--u));
+}
+.tr-actions { display: flex; gap: calc(24px * var(--u)); }
+.tr-actions .tr-btn { font-size: calc(40px * var(--u)); }

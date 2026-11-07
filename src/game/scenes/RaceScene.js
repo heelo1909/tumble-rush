@@ -45,6 +45,7 @@ export class RaceScene extends Phaser.Scene {
     this.hudTenth = NaN; // the tenth of a second and the countdown word the HUD last showed: it is rewritten only when one changes
     this.hudWord = '';
     this.flags = [];
+    this.overAt = null; // the step at which the results screen comes up after a finish (null = not finished)
     this.events_ = [];
     this.groundBodies = [];
     this.clockPaused = false; // test only (window.__TR.clock): holds the race clock still
@@ -76,8 +77,15 @@ export class RaceScene extends Phaser.Scene {
       .setScrollFactor(0).setDepth(50).setStroke('#1b1b2f', 4);
     if (this.flow) {
       this.makeFlags(course);
-      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.hudView?.clear());
+      if (course.finish) this.makeFinishLine(course);
     }
+    // When the scene stops (play again, back to the title) it lets go of the keyboard and clears the HUD (G3b): Phaser
+    // removes the Key objects itself but not the browser-level captures, so without this the title would never get
+    // W, A, D, Space or the arrows again.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.control.destroy();
+      this.hudView?.clear();
+    });
 
     // The rules run once per fixed physics step, in lockstep with Matter (src/game/CLAUDE.md rule 4).
     // No listener cleanup here: Phaser's Matter plugin shuts down before any scene handler could run
@@ -126,6 +134,12 @@ export class RaceScene extends Phaser.Scene {
     const r = stepRace(this.race, { x: x / TILE, y: y / TILE }, this.course);
     this.race = r.state;
     for (const e of r.events) this.onRaceEvent(e);
+    // The results come a beat after the line (TUNING.resultsDelay), counted in physics steps like everything else.
+    // The scene only says the race is over, in plain data: main.js shows the screen (game code never imports ui).
+    if (this.overAt !== null && this.steps >= this.overAt) {
+      this.overAt = null;
+      this.game.events.emit('race-over', { course: this.course.id, time: this.race.t, falls: this.race.falls });
+    }
   }
 
   /** What the race rules say happened: log it, and show or do it. */
@@ -146,6 +160,10 @@ export class RaceScene extends Phaser.Scene {
       // a cut, not a long pan back across the course: the player sees themselves at the flag the moment they are put back
       this.cameras.main.centerOnX(at.x + CAMERA_LEAD);
       this.logEvent('respawn', { checkpoint: e.checkpoint, x: Math.round((at.x / TILE) * 100) / 100 });
+    } else if (e.type === 'finish') {
+      this.logEvent('finish', { time: Math.round(e.time * 1000) / 1000, x });
+      this.hudView?.toast('Finished!');
+      this.overAt = this.steps + Math.round(TUNING.resultsDelay / STEP);
     }
   }
 
@@ -226,6 +244,26 @@ export class RaceScene extends Phaser.Scene {
         .setOrigin(0, 0.5).setStrokeStyle(3, 0x1b1b2f).setDepth(3);
       this.flags.push({ reach: () => cloth.setFillStyle(0x6bff6b) });
     }
+  }
+
+  /** The finish line: a checkered ribbon standing on the ground at the line, with the word FINISH above it. Drawn in code, no files. */
+  makeFinishLine(course) {
+    const col = course.finish.col;
+    const x = col * TILE;
+    const top = Math.min(...course.ground.filter((g) => col >= g.col && col < g.col + g.w).map((g) => g.row)) * TILE;
+    const sq = 12;
+    const rows = Math.round((TILE * 4) / sq);
+    const g = this.add.graphics().setDepth(2);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < 2; c++) {
+        g.fillStyle((r + c) % 2 === 0 ? 0xffffff : 0x1b1b2f, 1);
+        g.fillRect(x - sq + c * sq, top - (r + 1) * sq, sq, sq);
+      }
+    }
+    g.lineStyle(3, 0x1b1b2f, 1);
+    g.strokeRect(x - sq, top - rows * sq, sq * 2, rows * sq);
+    this.add.text(x, top - rows * sq - 8, 'FINISH', { fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff', fontStyle: 'bold' })
+      .setOrigin(0.5, 1).setStroke('#1b1b2f', 7).setDepth(2);
   }
 
   buildCourse(course, worldW, worldH) {

@@ -19,6 +19,15 @@ to the window would sit on the letterbox bars. All its sizes scale with the pict
 0.75). e2e: race.solo.spec.js checks the timer, message and word lie inside the canvas at 1280x800, 1440x900, 1280x1000 and
 1440x780 and after a resize.
 
+`title.js` + `results.js` + `screens.css` (G3b): `createTitle(#ui, {onPlay})` is a Play button (test id `play-solo`, focused so Enter or
+Space starts a race) and a line about the keys, shown only while the title scene is up (`show()` / `hide()`); `createResults(#ui,
+{onAgain, onTitle})` is the solo results card: `results` (the layer), `results-headline` ("Finished!", 128 px at a 1280 px picture),
+`results-time` (the time as the timer wrote it), `results-falls` ("No falls" / "1 fall" / "N falls"), `rematch` ("Play again") and
+`to-title` ("Title"), brought up by `show({time, falls})`. Neither is focused on show for the results: a kid still hammering Space
+at the line would otherwise press Play again by accident. Places and coins arrive with bots, the net and P1. main.js wires them
+(`title-shown`, `race-over`, Play, play again, back to the title). e2e: race.solo.spec.js checks every part lies on the picture, and
+the text sizes, at 1280x800, 1440x900 (and 1280x1000 for the results).
+
 ## Rules
 1. **Imports only from `src/logic`.** Screens get data and callbacks from `src/main.js`
    (`showLobby({seats, code, isHost, onStart})`), so they never call net or game code.
