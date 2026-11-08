@@ -10,7 +10,8 @@ review panel → live check → log → commit.**
 - Tests come before or with the code, never after.
 
 ## 2. What "done" means
-DoD items met, a permanent smoke check exists, `npm run smoke` says `SMOKE: PASS` on the user's Mac,
+DoD items met, a permanent smoke check exists, the smoke for this stage passed on the user's Mac (`SMOKE: TARGETED` on
+four stages out of five, a full `SMOKE: PASS` every 5th stage and on D1 and R1: see CLAUDE.md "Closing a stage"),
 screenshots show the feature, the review panel passes (§4), the live check passes (if deploy exists), PROGRESS
 is updated, and the work is committed and pushed. Anything less is PARTIAL or FAILED and logged that way.
 

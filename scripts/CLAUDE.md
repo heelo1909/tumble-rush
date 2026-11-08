@@ -19,6 +19,10 @@ Then:
 - Regenerate `STATUS.md` (see the WardenMac 2 version for the format).
 - `--quick` runs steps 1–5 only, writes `result: "QUICK"`, and never satisfies the Stop gate.
 - `--live` runs only step 6 against `BASE_URL` = the Pages URL from `package.json` `homepage`.
+- `--targeted=a.spec.js,b.spec.js` runs steps 1–5 and, for step 6, only `boot.spec.js` plus those specs; result `TARGETED`,
+  saved to `.smoke/last-targeted.json` (never over `last-run.json`, which stays the last FULL run). `stopGate` accepts a
+  TARGETED run for the current code unless the last full run was 5 or more stages back in the PROGRESS list, or the stage
+  is D1 or R1 (`FULL_EVERY`, `ALWAYS_FULL` in harness_common.mjs).
 
 ## progress_view.mjs
 Parses PROGRESS.md: `currentStatus()`, `stages()` → `[{id,title,done}]`, `nextStage()`, `latestLogEntry()`.
