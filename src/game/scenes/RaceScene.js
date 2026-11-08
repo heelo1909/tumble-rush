@@ -12,8 +12,9 @@ import { W, H } from '../BootScene.js';
 import testFlat from '../courses/test-flat.json';
 import testGallery from '../courses/test-gallery.json';
 import testRace from '../courses/test-race.json';
+import course1 from '../courses/course1.json';
 
-const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery, 'test-race': testRace };
+const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery, 'test-race': testRace, course1 };
 const MAX_EVENTS = 500;
 const CAMERA_LEAD = W * 0.1; // the camera's centre sits this far ahead of the runner, so there is more to see in front
 

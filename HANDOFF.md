@@ -284,8 +284,13 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   back to the title (the race scene stops and starts cleanly); played on the short test course (split from G3,
   PROGRESS Decision 60). DoD: e2e plays the race with real keys from the title through the countdown and the finish to
   the results, plays again, and goes back to the title, with screenshots.
-- [ ] **G3c: Course 1.** Course 1 (60–90 s, teaches 2–3 obstacles then mixes them), the title's Play button
-  starts it, and a test player that finishes it. DoD: e2e plays course 1 with real keys from the countdown to the results.
+- [ ] **G3c: Course 1, the opening, and the test player.** The first part of course 1 (the first things it teaches:
+  pits to jump, a spinning bar, a row of falling tiles; split from G3c, PROGRESS Decision 70) and a test player in
+  `tests/e2e` that finishes it with real keys. Reached with `?test=1&scene=course1`; the title's Play is unchanged.
+  DoD: e2e plays the opening with real keys from the countdown to the results, in both browsers, with screenshots.
+- [ ] **G3d: Course 1, the rest, and the way in.** The rest of course 1 (the other obstacle it teaches, then the mix; 60–90 s
+  in all, `minTime` worked out allowing for its belts and pads, PROGRESS Decision 68), the title's Play button starts it, the
+  test player finishes the whole course. DoD: e2e plays course 1 with real keys from the title through the countdown to the results.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.
 - [ ] **N1: Rooms [design].** Create/join by code or link, Presence seats, bots fill seats, a friend

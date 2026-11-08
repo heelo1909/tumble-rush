@@ -1,0 +1,25 @@
+{
+  "id": "course1",
+  "tile": 48,
+  "cols": 112,
+  "rows": 12,
+  "spawn": { "col": 2, "row": 9 },
+  "ground": [
+    { "col": 0, "row": 10, "w": 18, "h": 2 },
+    { "col": 21, "row": 10, "w": 15, "h": 2 },
+    { "col": 39, "row": 10, "w": 23, "h": 2 },
+    { "col": 70, "row": 10, "w": 42, "h": 2 }
+  ],
+  "checkpoints": [
+    { "col": 28, "row": 9 },
+    { "col": 44, "row": 9 },
+    { "col": 58, "row": 9 },
+    { "col": 78, "row": 9 }
+  ],
+  "obstacles": [
+    { "type": "spinning-bar", "col": 52, "row": 7.2, "length": 3.6, "rps": 0.3 },
+    { "type": "falling-tiles", "col": 66, "row": 10.25, "count": 8 }
+  ],
+  "finish": { "col": 100 },
+  "minTime": 8
+}

@@ -8,7 +8,7 @@ import { formatRaceTime } from '../../src/logic/clock.js';
 // (tests/e2e/CLAUDE.md rule 1); no __TR.teleport, __TR.clock or __TR.hit here. Times come from the game's own
 // physics clock (state().raceTime and the event log), not the wall clock, so a slow frame cannot make them flaky.
 // G3b adds the way in and out: the title's Play button, the finish line, the results screen, play again and back to
-// the title, on the same short course. G3c adds course 1 to this file.
+// the title, on the same short course. G3d adds the whole of course 1 to this file (G3c has its own: course1.spec.js).
 
 const course = JSON.parse(readFileSync(new URL('../../src/game/courses/test-race.json', import.meta.url), 'utf8'));
 const PIT1 = course.ground[0].col + course.ground[0].w; // first tile of the first pit (3 tiles wide)

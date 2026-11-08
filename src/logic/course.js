@@ -12,6 +12,28 @@ const isPosInt = (v) => Number.isInteger(v) && v > 0;
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
+ * The pits of a course: each run of columns that no ground block stands on, lying between two columns that one does
+ * (the empty columns before the first ground or after the last are not pits). A column is covered if any block stands on
+ * it, whatever its row, so a raised block over the floor changes nothing. Used by the test player and the smoke check,
+ * and by B1's bots to know where to jump. Never throws: nonsense gives no pits.
+ * @param {unknown} c the parsed course JSON
+ * @returns {{from: number, to: number, width: number}[]} left to right; `from` is the first empty column and `to` the
+ *   first column of ground after it, so `width = to - from`
+ */
+export function groundGaps(c) {
+  const list = isObject(c) && Array.isArray(/** @type {any} */ (c).ground) ? /** @type {any} */ (c).ground : [];
+  const spans = list.filter((g) => isObject(g) && isInt(g.col) && isPosInt(g.w)).map((g) => [g.col, g.col + g.w]).sort((a, b) => a[0] - b[0]);
+  if (spans.length === 0) return [];
+  const gaps = [];
+  let reach = spans[0][1]; // the first column nothing so far stands on
+  for (const [from, to] of spans.slice(1)) {
+    if (from > reach) gaps.push({ from: reach, to: from, width: from - reach });
+    if (to > reach) reach = to;
+  }
+  return gaps;
+}
+
+/**
  * @param {unknown} c the parsed course JSON
  * @returns {string[]} one plain sentence per problem; empty means the course is valid
  */
