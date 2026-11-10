@@ -20,6 +20,6 @@
     { "type": "spinning-bar", "col": 52, "row": 7.2, "length": 3.6, "rps": 0.3 },
     { "type": "falling-tiles", "col": 66, "row": 10.25, "count": 8 }
   ],
-  "finish": { "col": 100 },
+  "finish": { "col": 101 },
   "minTime": 8
 }

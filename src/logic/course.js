@@ -14,8 +14,10 @@ const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 /**
  * The pits of a course: each run of columns that no ground block stands on, lying between two columns that one does
  * (the empty columns before the first ground or after the last are not pits). A column is covered if any block stands on
- * it, whatever its row, so a raised block over the floor changes nothing. Used by the test player and the smoke check,
- * and by B1's bots to know where to jump. Never throws: nonsense gives no pits.
+ * it, whatever its row, so a raised block over the floor changes nothing; that also means a block floating OVER a pit
+ * hides it, so a course with raised ground must be looked at by hand. Used by the test player and the smoke check, and by
+ * B1's bots to know where to jump. Never throws: nonsense gives no pits, and an entry that is not a block with whole
+ * `col` and a positive whole `w` is dropped without a word, so run `validateCourse` first.
  * @param {unknown} c the parsed course JSON
  * @returns {{from: number, to: number, width: number}[]} left to right; `from` is the first empty column and `to` the
  *   first column of ground after it, so `width = to - from`
@@ -31,6 +33,21 @@ export function groundGaps(c) {
     if (to > reach) reach = to;
   }
   return gaps;
+}
+
+/**
+ * The pits a runner has to JUMP: the gaps of `groundGaps` that no one row of falling tiles bridges from end to end (a row
+ * that covers only part of a pit leaves the rest open, so that pit is still a jump). One definition for the test player,
+ * the smoke check and B1's bots.
+ * @param {unknown} c the parsed course JSON
+ * @returns {{from: number, to: number, width: number}[]} left to right, like `groundGaps`
+ */
+export function pitsToJump(c) {
+  const list = isObject(c) && Array.isArray(/** @type {any} */ (c).obstacles) ? /** @type {any} */ (c).obstacles : [];
+  const rows = list
+    .filter((o) => isObject(o) && o.type === 'falling-tiles' && Number.isFinite(o.col) && Number.isFinite(o.count))
+    .map((o) => [o.col - o.count / 2, o.col + o.count / 2]);
+  return groundGaps(c).filter((g) => !rows.some(([a, b]) => a <= g.from && b >= g.to));
 }
 
 /**

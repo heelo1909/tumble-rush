@@ -1,5 +1,5 @@
 import { TILE } from '../../src/logic/tuning.js';
-import { groundGaps } from '../../src/logic/course.js';
+import { pitsToJump } from '../../src/logic/course.js';
 
 /**
  * The test player (G3c). It plays a race the way a kid with a keyboard does, with REAL key presses (page.keyboard):
@@ -8,37 +8,38 @@ import { groundGaps } from '../../src/logic/course.js';
  * anything, so a spinning bar may knock it about, and a miss costs a fall and a try from the last flag, as for a
  * person. It never uses __TR.teleport, clock, hit or autopilot (tests/e2e/CLAUDE.md rule 1). B1 builds the real bot
  * brain in src/bots; this is only what the e2e needs to finish a course.
+ *
+ * It gives up with a message that says where it was, so a broken course or a key that does not reach the game fails
+ * fast and plainly: after too many falls, when it makes no headway for a while, past a race-time limit, or past a
+ * wall-clock limit.
  * @module tests/e2e/player
  */
 
 /** A running jump takes off this many tiles before the edge of a pit and lands about 4.3 tiles on (G3b measured it). */
 export const JUMP_AT = 0.6;
-/** ...and still clears a 3-tile pit when the poll sees the runner this far past the edge (the feet leave the ground at about 0.4). */
+/** ...and still clears a 3-tile pit when the poll sees the runner this far past the edge (the feet stop counting as on the ground about 0.34 past it). */
 export const JUMP_LATE = 0.25;
-
-/** The pits a runner has to jump: the gaps in the ground that no row of falling tiles bridges. */
-export function pitsToJump(course) {
-  const tileRows = (course.obstacles ?? []).filter((o) => o.type === 'falling-tiles').map((o) => [o.col - o.count / 2, o.col + o.count / 2]);
-  return groundGaps(course).filter((g) => !tileRows.some(([a, b]) => a < g.to && b > g.from));
-}
 
 /**
  * Play until the line is crossed (`race.phase === 'finished'`), then let go of the keys.
  * @param {import('@playwright/test').Page} page the game, already in the race scene
  * @param {object} course the course JSON being played
- * @param {{ onTick?: (s: any) => Promise<void> | void, timeoutMs?: number, maxFalls?: number }} [opts] `onTick` sees
- *   every state read (the spec takes its screenshots there; it must not do so just before a pit); `timeoutMs` is
- *   wall-clock; `maxFalls` is how many falls it takes before it gives up (a course or a player that cannot get over
- *   something fails in about half a minute, not at the timeout)
+ * @param {{ onTick?: (s: any) => Promise<void> | void, timeoutMs?: number, maxFalls?: number, maxRaceTime?: number, stallSeconds?: number }} [opts]
+ *   `onTick` sees every state read (the spec takes its screenshots there; it must not do so just before a pit);
+ *   `timeoutMs` is wall-clock and must stay under the test's own timeout, so that this message is the one that shows;
+ *   `maxFalls` is how many falls it takes before it gives up; `maxRaceTime` is the race clock (seconds) it may not pass;
+ *   `stallSeconds` is how many seconds of race time it may go without getting 0.5 tiles past its furthest point
  * @returns {Promise<{ polls: number, taps: { jump: number, dive: number } }>}
  */
-export async function playRace(page, course, { onTick, timeoutMs = 120000, maxFalls = 8 } = {}) {
+export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFalls = 8, maxRaceTime = 60, stallSeconds = 10 } = {}) {
   const pits = pitsToJump(course);
   const jumped = new Set();
   const taps = { jump: 0, dive: 0 };
   let held = false;
   let gotUp = false; // one Shift per tumble
   let polls = 0;
+  let bestX = -Infinity; // the furthest the runner has got
+  let bestAt = 0; // and the race time it got there
   const started = Date.now();
   try {
     for (;;) {
@@ -48,15 +49,23 @@ export async function playRace(page, course, { onTick, timeoutMs = 120000, maxFa
       const me = s.runners[0];
       if (!race || !me) throw new Error('the test player needs the race flow (a race scene with a runner)');
       if (race.phase === 'finished') break;
-      if (race.falls > maxFalls) throw new Error(`the test player fell ${race.falls} times and gave up (at x ${(me.x / TILE).toFixed(1)}, last flag ${race.checkpoint})`);
-      if (Date.now() - started > timeoutMs) throw new Error(`the test player did not finish in ${timeoutMs / 1000} s (at x ${(me.x / TILE).toFixed(1)}, ${race.falls} falls)`);
+      const x = me.x / TILE;
+      const where = `at x ${x.toFixed(1)}, last flag ${race.checkpoint}, mode ${me.mode}, ${race.falls} falls, race time ${race.t.toFixed(1)}`;
+      if (race.falls > maxFalls) throw new Error(`the test player fell ${race.falls} times and gave up (${where})`);
+      if (race.t > maxRaceTime) throw new Error(`the test player ran out of race time (${maxRaceTime} s) (${where})`);
+      if (Date.now() - started > timeoutMs) throw new Error(`the test player did not finish in ${timeoutMs / 1000} s of wall-clock time (${where})`);
 
       if (race.phase === 'racing' && race.respawnIn === null) {
+        if (x > bestX + 0.5) {
+          bestX = x;
+          bestAt = race.t;
+        } else if (race.t - bestAt > stallSeconds) {
+          throw new Error(`the test player has made no headway past x ${bestX.toFixed(1)} for ${stallSeconds} s of race time: the keys may not be reaching the game (${where})`);
+        }
         if (!held) {
           await page.keyboard.down('ArrowRight');
           held = true;
         }
-        const x = me.x / TILE;
         for (let i = 0; i < pits.length; i++) {
           const pit = pits[i];
           if (x < pit.from - 2) jumped.delete(i); // put back before it after a fall: take the run-up again
@@ -75,6 +84,9 @@ export async function playRace(page, course, { onTick, timeoutMs = 120000, maxFa
         } else {
           gotUp = false;
         }
+      } else {
+        // the countdown and the wait to be put back after a fall have nothing to decide: do not spin the page's CPU
+        await page.waitForTimeout(20);
       }
       if (onTick) await onTick(s);
     }

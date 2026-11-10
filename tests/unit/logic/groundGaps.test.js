@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { groundGaps, validateCourse } from '../../../src/logic/course.js';
+import { groundGaps, pitsToJump } from '../../../src/logic/course.js';
 import testRace from '../../../src/game/courses/test-race.json';
+import course1 from '../../../src/game/courses/course1.json';
 
-const course = (ground) => ({ id: 'x', tile: 48, cols: 100, rows: 12, spawn: { col: 1, row: 8 }, ground });
+const course = (ground, obstacles) => ({ id: 'x', tile: 48, cols: 100, rows: 12, spawn: { col: 1, row: 8 }, ground, obstacles });
 
 describe('groundGaps', () => {
   it('lists each run of columns with no ground between two stretches of ground, with where it starts and ends', () => {
@@ -35,7 +36,52 @@ describe('groundGaps', () => {
     expect(groundGaps({ ground: 'floor' })).toEqual([]);
   });
 
-  it('agrees with the validator about the real courses it is used on', () => {
-    expect(validateCourse(testRace)).toEqual([]);
+  it('drops an entry that is not a block with a whole col and a positive whole w, so it cannot split a pit or open a phantom one', () => {
+    const floor = [{ col: 0, row: 10, w: 10, h: 2 }, { col: 15, row: 10, w: 10, h: 2 }];
+    const clean = groundGaps(course(floor));
+    expect(clean).toEqual([{ from: 10, to: 15, width: 5 }]);
+    // each of these on its own, and all of them together, must leave the answer as it was
+    const garbage = [null, 7, 'ground', [], {}, { col: 12, w: 0 }, { col: 12, w: -3 }, { col: 10.5, w: 2 }, { col: 11, w: 1.5 }, { col: '12', w: 2 }];
+    for (const g of garbage) expect(groundGaps(course([...floor, g])), JSON.stringify(g)).toEqual(clean);
+    expect(groundGaps(course([null, ...floor, ...garbage]))).toEqual(clean);
+  });
+
+  it('finds the pits of course 1: the two to jump and the one the falling tiles cover', () => {
+    expect(groundGaps(course1)).toEqual([
+      { from: 18, to: 21, width: 3 },
+      { from: 36, to: 39, width: 3 },
+      { from: 62, to: 70, width: 8 },
+    ]);
+  });
+});
+
+describe('pitsToJump', () => {
+  const floor = [{ col: 0, row: 10, w: 10, h: 2 }, { col: 14, row: 10, w: 20, h: 2 }];
+  const pit = { from: 10, to: 14, width: 4 };
+
+  it('is every gap when there are no falling tiles, and never throws on nonsense', () => {
+    expect(pitsToJump(course(floor))).toEqual([pit]);
+    expect(pitsToJump(course(floor, []))).toEqual([pit]);
+    expect(pitsToJump({})).toEqual([]);
+    expect(pitsToJump(null)).toEqual([]);
+    expect(pitsToJump(course(floor, 'tiles'))).toEqual([pit]);
+  });
+
+  it('leaves out a pit that one row of falling tiles covers end to end', () => {
+    expect(pitsToJump(course(floor, [{ type: 'falling-tiles', col: 12, row: 10.25, count: 4 }]))).toEqual([]);
+    expect(pitsToJump(course(floor, [{ type: 'falling-tiles', col: 12, row: 10.25, count: 6 }]))).toEqual([]); // reaching onto the ground is fine
+  });
+
+  it('keeps a pit that a row covers only in part: the rest is open, so it is still a jump', () => {
+    expect(pitsToJump(course(floor, [{ type: 'falling-tiles', col: 11, row: 10.25, count: 2 }]))).toEqual([pit]);
+    expect(pitsToJump(course(floor, [{ type: 'falling-tiles', col: 12, row: 10.25, count: 3 }]))).toEqual([pit]);
+  });
+
+  it('ignores other obstacles and rows with no usable numbers', () => {
+    expect(pitsToJump(course(floor, [{ type: 'conveyor', col: 12, row: 10, w: 4, dir: 1 }, { type: 'falling-tiles', col: 'x', count: 4 }, null]))).toEqual([pit]);
+  });
+
+  it('gives the two pits of course 1 and not the tile row', () => {
+    expect(pitsToJump(course1).map((p) => p.from)).toEqual([18, 36]);
   });
 });

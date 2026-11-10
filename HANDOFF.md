@@ -284,8 +284,8 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   back to the title (the race scene stops and starts cleanly); played on the short test course (split from G3,
   PROGRESS Decision 60). DoD: e2e plays the race with real keys from the title through the countdown and the finish to
   the results, plays again, and goes back to the title, with screenshots.
-- [ ] **G3c: Course 1, the opening, and the test player.** The first part of course 1 (the first things it teaches:
-  pits to jump, a spinning bar, a row of falling tiles; split from G3c, PROGRESS Decision 70) and a test player in
+- [x] **G3c: Course 1, the opening, and the test player.** The first part of course 1 (the first things it teaches:
+  pits to jump, a spinning bar, a row of falling tiles; split from the old G3c, PROGRESS Decision 70) and a test player in
   `tests/e2e` that finishes it with real keys. Reached with `?test=1&scene=course1`; the title's Play is unchanged.
   DoD: e2e plays the opening with real keys from the countdown to the results, in both browsers, with screenshots.
 - [ ] **G3d: Course 1, the rest, and the way in.** The rest of course 1 (the other obstacle it teaches, then the mix; 60–90 s
