@@ -5,11 +5,13 @@ import { formatRaceTime, fallsLabel } from '../../src/logic/clock.js';
 import { groundGaps, pitsToJump } from '../../src/logic/course.js';
 import { playRace } from './player.js';
 
-// G3c and G3d: course 1 (src/game/courses/course1.json: the opening of G3c, its harsh bar and tiles, then the mix of
-// G3d), reached with ?test=1&scene=course1, played from the countdown to the results by the test player
-// (tests/e2e/player.js): real key presses, reading the game through
-// __TR.state() and the course JSON, no __TR.teleport, clock, hit or autopilot (tests/e2e/CLAUDE.md rule 1). The title's
-// Play still runs the short test course until G3e, so this spec does not click Play: the way in is race.solo.spec.js's.
+// G3c to G3e: course 1 (src/game/courses/course1.json: the opening of G3c, its harsh bar and tiles, then the mix of
+// G3d), played from the title's Play button (G3e: the real way in, no `scene` in the URL) through the countdown to the
+// results by the test player (tests/e2e/player.js): real key presses, reading the game through
+// __TR.state() and the course JSON, no __TR.teleport, clock, hit or autopilot (tests/e2e/CLAUDE.md rule 1). It is the only
+// test that plays the whole of course 1 (74 s in chromium and 87 s in webkit when measured, with the bar's luck): the
+// whole-race title test in race.solo.spec.js plays the short course through `?course=test-race` (PROGRESS Decision 80), so
+// the e2e keeps its margin under the smoke script's 900 s limit.
 // Times are the game's own physics clock (race.finishTime), not wall time, so a slow frame cannot make them flaky.
 
 const course = JSON.parse(readFileSync(new URL('../../src/game/courses/course1.json', import.meta.url), 'utf8'));
@@ -29,12 +31,25 @@ const ofType = (events, type) => events.filter((e) => e.type === type);
 const waitFor = (page, fn, arg, timeout = 8000) => page.waitForFunction(fn, arg, { timeout });
 const note = (testInfo, type, value) => testInfo.annotations.push({ type, description: String(value) });
 const settle = (page) => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+/** A new race is on screen, as in race.solo.spec.js: the timer reads 0:00.0 and the word is 3, 2 or 1. Callers `settle` after it: two frames drawn (WebKit shows the old canvas for a frame or two: PROGRESS Decision 67). */
+async function countdownShown(page) {
+  await expect(page.getByTestId('timer')).toHaveText('0:00.0');
+  await expect(page.getByTestId('countdown')).toHaveText(/^[123]$/);
+}
 
-test('the test player runs the whole of course 1 from the countdown to the results with real keys: it jumps the pits, crosses the falling tiles, passes every flag in order and finishes', async ({ page }, testInfo) => {
+test('from the title, Play starts course 1 and the test player runs all of it with real keys: it jumps the pits, crosses the falling tiles, passes every flag in order, finishes, and Play again is course 1 again', async ({ page }, testInfo) => {
   // the race takes about 85 s of race time and the test about 100 s all told; the player's own wall-clock limit (170 s)
   // is inside this one, so a stuck runner fails with the player's message that says where, not with a bare test timeout
   test.setTimeout(200000);
-  await gamePage(page, { scene: 'course1' });
+  await gamePage(page); // no scene in the URL: the real way in, the title
+  expect((await state(page)).scene, 'the page opens on the title').toBe('hello');
+  const play = page.getByTestId('play-solo');
+  await expect(play).toBeVisible();
+  await expect(play).toHaveText('Play');
+  await settle(page);
+  await shot(page, 'title', testInfo);
+  await play.click();
+  await expect(page.getByTestId('title')).toBeHidden();
   await waitFor(page, () => {
     const s = window.__TR.state();
     return s.scene === 'race' && s.race && s.runners.length === 1;
@@ -44,7 +59,7 @@ test('the test player runs the whole of course 1 from the countdown to the resul
   expect(start.race.checkpoints, 'every flag of the course is in the race').toBe(course.checkpoints.length);
   expect(start.obstacles.map((o) => o.type).sort(), 'every bar and every row of tiles of the course is really in the scene').toEqual(course.obstacles.map((o) => o.type).sort());
   // the first frame of a new scene is drawn before the shot is taken (WebKit shows the old canvas for a frame: PROGRESS Decision 67)
-  await waitFor(page, () => document.querySelector('[data-testid="countdown"]')?.textContent !== '');
+  await countdownShown(page);
   await settle(page);
   await shot(page, 'countdown', testInfo);
 
@@ -124,4 +139,21 @@ test('the test player runs the whole of course 1 from the countdown to the resul
   await expect(page.getByTestId('results-falls')).toHaveText(fallsLabel(done.race.falls));
   await settle(page);
   await shot(page, 'results', testInfo);
+
+  // Play again runs course 1 again (the title's Play set the course, and the results' button starts the same race): a new
+  // countdown, none of the old race left, and the whole course in the scene (only the countdown: the course is played once)
+  await page.getByTestId('rematch').click();
+  await expect(page.getByTestId('results')).toBeHidden();
+  await waitFor(page, () => {
+    const s = window.__TR.state();
+    return s.scene === 'race' && s.race && s.race.phase === 'countdown';
+  });
+  const again = await state(page);
+  expect(again.race.checkpoints, 'play again is course 1 again, with every flag').toBe(course.checkpoints.length);
+  expect(again.race.falls).toBe(0);
+  expect(again.race.finishTime).toBeNull();
+  expect(again.obstacles.map((o) => o.type).sort(), 'and every bar and row of tiles').toEqual(course.obstacles.map((o) => o.type).sort());
+  await countdownShown(page);
+  await settle(page);
+  await shot(page, 'again-countdown', testInfo);
 });

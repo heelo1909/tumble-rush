@@ -295,9 +295,12 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   Decision 68 waits for the first course that has them); split from the old G3d, PROGRESS Decision 76. Reached with
   `?test=1&scene=course1`; the title's Play is unchanged. DoD: e2e plays the whole of course 1 with real keys from the
   countdown to the results, in both browsers, with screenshots.
-- [ ] **G3e: Course 1, the way in.** The title's Play button starts course 1 (`SOLO_COURSE`), and the tests that play from
-  the title (race.solo.spec.js) and the test player go through it. DoD: e2e plays course 1 with real keys from the title
-  through the countdown to the results, with screenshots; player-visible, so the product-reviewer runs.
+- [x] **G3e: Course 1, the way in.** The title's Play button starts course 1 (`SOLO_COURSE`), and the tests that play from
+  the title (race.solo.spec.js) and the test player go through it: course1.spec.js plays the whole course from the title,
+  once per browser; race.solo.spec.js's title tests play the short course through `?test=1&course=test-race` (a test-mode
+  switch, PROGRESS Decision 80) so the e2e stays under the smoke script's 900 s limit, and check that Play and Enter, with no
+  switch, run course 1. DoD: e2e plays course 1 with real keys from the title through the countdown to the results, with
+  screenshots; player-visible, so the product-reviewer runs.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.
 - [ ] **N1: Rooms [design].** Create/join by code or link, Presence seats, bots fill seats, a friend

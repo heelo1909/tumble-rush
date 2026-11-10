@@ -8,17 +8,22 @@ import { createHud } from './ui/hud.js';
 import { createResults } from './ui/results.js';
 import { createTitle } from './ui/title.js';
 
-// The course the title's Play button runs. G3b plays the short test course; G3e swaps this one constant for course 1.
-const SOLO_COURSE = 'test-race';
+// The course the title's Play button runs: course 1 (G3e).
+const SOLO_COURSE = 'course1';
 
 const params = new URLSearchParams(window.location.search);
+// Test mode only: `?test=1&course=test-race` makes the title's Play run the short practice course, so the e2e's title
+// test that plays a whole race (race.solo.spec.js) can do it in seconds, by that course's pits (PROGRESS Decision 80).
+// Anything else, and every page without `test=1`, runs SOLO_COURSE.
+const TEST_SOLO_COURSES = ['test-race'];
+const soloCourse = params.get('test') === '1' && TEST_SOLO_COURSES.includes(params.get('course')) ? params.get('course') : SOLO_COURSE;
 // Test scenes, reachable only in test mode (?test=1&scene=flat, gallery or race) until the real flow is built. `flow`
 // turns on the race flow (countdown, timer, checkpoints, respawn: G3a); the other two are free-run test courses.
 const TEST_SCENES = {
   flat: { course: 'test-flat', flow: false },
   gallery: { course: 'test-gallery', flow: false },
   race: { course: 'test-race', flow: true },
-  course1: { course: 'course1', flow: true }, // G3c: the opening of course 1, played by the e2e's test player
+  course1: { course: 'course1', flow: true }, // G3c: course 1 without the title (a shortcut to the race; the e2e goes through the title since G3e)
 };
 const testScene = params.get('test') === '1' ? TEST_SCENES[params.get('scene')] : undefined;
 
@@ -36,7 +41,7 @@ const startRace = () => {
   game.scene.start('race');
 };
 const playSolo = () => {
-  game.registry.set('course', SOLO_COURSE);
+  game.registry.set('course', soloCourse);
   game.registry.set('flow', true);
   startRace();
 };

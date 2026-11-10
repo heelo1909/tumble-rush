@@ -119,7 +119,9 @@ for (const [name, text] of [['course1.spec.js', spec], ['player.js', player]]) {
   if (/__TR\.(teleport|clock|hit|autopilot)\(/.test(text)) fail(`${name} uses __TR.teleport, clock, hit or autopilot: the test player drives real keys`);
 }
 if ((spec.match(/^\s*test\(/gm) ?? []).length < 1) fail('course1.spec.js has no test');
-if (!/scene:\s*'course1'/.test(spec)) fail('course1.spec.js does not open the course1 scene');
+// G3e (PROGRESS Decision 80): the spec starts course 1 through the title's Play button, no longer through ?scene=course1 (it was
+// `scene: 'course1'`). Same point, a stricter way in: the course it plays must be the one Play runs; g3e_course1_way_in.mjs holds the rest.
+if (!/getByTestId\('play-solo'\)/.test(spec) || !/\bplay\.click\(\)/.test(spec) || /scene:\s*'course1'/.test(spec) || !/race\.checkpoints[^;]*toBe\(course\.checkpoints\.length\)/.test(spec)) fail('course1.spec.js does not start course 1 from the title (click Play) and check the race has every flag of course1.json');
 if (!/keyboard\.down\('ArrowRight'\)/.test(player) || !/keyboard\.press\('Space'\)/.test(player) || !/keyboard\.press\('Shift'\)/.test(player)) fail('player.js does not hold ArrowRight and tap Space and Shift with real keys');
 if (!/race\.phase === 'finished'\)\s*break/.test(player)) fail('player.js does not play until the finish');
 if (!/const zones = hazardZones\(course\)/.test(player) || !/zones\.some\(/.test(player)) fail('player.js does not dive through the stretches around a bar: without that a harsh bar walls it off (Decision 75)');

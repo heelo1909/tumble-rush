@@ -8,9 +8,16 @@ import { formatRaceTime } from '../../src/logic/clock.js';
 // (tests/e2e/CLAUDE.md rule 1); no __TR.teleport, __TR.clock or __TR.hit here. Times come from the game's own
 // physics clock (state().raceTime and the event log), not the wall clock, so a slow frame cannot make them flaky.
 // G3b adds the way in and out: the title's Play button, the finish line, the results screen, play again and back to
-// the title, on the same short course. G3e adds the whole of course 1 to this file (G3c and G3d have their own: course1.spec.js).
+// the title, on the same short course. G3e: the title's Play now runs course 1, played whole by course1.spec.js (74 to
+// 87 s a browser). The first title test below plays a WHOLE race, by the short course's pit coordinates, so it asks for
+// that course with `?course=test-race` (a test-mode switch for the title's Play, PROGRESS Decision 80): it cannot play
+// course 1 at all, and rewriting it for the test player would add another 160 s to an e2e that is at 606 s of a 900 s limit
+// only the user can raise. The play-again test reaches its races through a test scene, and the third only presses Enter.
+// Where a test only STARTS a race from the title, it checks that Play runs course 1 (its flags are the proof: the short
+// course has 2).
 
 const course = JSON.parse(readFileSync(new URL('../../src/game/courses/test-race.json', import.meta.url), 'utf8'));
+const course1 = JSON.parse(readFileSync(new URL('../../src/game/courses/course1.json', import.meta.url), 'utf8'));
 const PIT1 = course.ground[0].col + course.ground[0].w; // first tile of the first pit (3 tiles wide)
 const PIT2 = course.ground[1].col + course.ground[1].w;
 const FINISH = course.finish.col; // the line: the left edge of this tile
@@ -391,7 +398,7 @@ const layerOnPicture = (page) => waitFor(page, () => {
 test('from the title: Play, the countdown, the finish line, the results; the runner stops and the clock too', async ({ page }, testInfo) => {
   test.setTimeout(SINGLE_RACE_LIMIT);
   await watchPage(page);
-  await gamePage(page); // no scene in the URL: the real way in, the title
+  await gamePage(page, { course: 'test-race' }); // no scene in the URL: the real way in, the title (its Play runs the short course here)
   expect((await state(page)).scene).toBe('hello');
   const play = page.getByTestId('play-solo');
   await expect(play).toBeVisible();
@@ -408,6 +415,7 @@ test('from the title: Play, the countdown, the finish line, the results; the run
   await expect(page.getByTestId('title')).toBeHidden();
   const start = await state(page);
   expect(start.race.phase).toBe('countdown');
+  expect(start.race.checkpoints, '?course=test-race: Play ran the short course').toBe(course.checkpoints.length);
   expect(start.race.finishTime).toBeNull();
   expect(start.runners[0].finished).toBe(false);
 
@@ -568,6 +576,8 @@ test('play again starts a clean race, the title gets its keys back, and Play fro
     return s.scene === 'race' && s.race && s.race.phase === 'countdown' && s.raceTime < -2;
   });
   await expect(page.getByTestId('title')).toBeHidden();
+  // this page raced the short course through a test scene, and the title's Play (no `course` in the URL) is still course 1
+  expect((await state(page)).race.checkpoints, "Play from the title runs course 1, whatever the page raced before").toBe(course1.checkpoints.length);
   await drawn(page); // the shot below must show the race, not the title canvas that is still up for a frame or two in WebKit
   await page.evaluate(() => { window.__keys.length = 0; });
   await page.keyboard.press('ArrowUp');
@@ -612,6 +622,7 @@ test('the title: Play sits on the picture at 1280x800 and 1440x900, and Enter st
     return s.scene === 'race' && s.race && s.race.phase === 'countdown';
   });
   await expect(page.getByTestId('title')).toBeHidden();
+  expect((await state(page)).race.checkpoints, 'Enter on the title starts course 1 (the title was opened with no course switch)').toBe(course1.checkpoints.length);
   await drawn(page);
   await shot(page, 'enter-started-race', testInfo);
 });

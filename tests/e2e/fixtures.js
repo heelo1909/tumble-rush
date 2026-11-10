@@ -17,8 +17,12 @@ export const test = base.extend({
 });
 export { expect };
 
-export async function gamePage(page, { seed = 1, scene } = {}) {
-  const extra = scene ? `&scene=${scene}` : '';
+/**
+ * `scene` opens a test scene (no title). `course` (G3e) keeps the TITLE and changes the course its Play button runs: only
+ * `test-race`, the short practice course, is accepted, so the title test that plays a whole race does it in seconds (PROGRESS Decision 80).
+ */
+export async function gamePage(page, { seed = 1, scene, course } = {}) {
+  const extra = (scene ? `&scene=${scene}` : '') + (course ? `&course=${course}` : '');
   await page.goto(`./?test=1&ns=test-${runId}-&seed=${seed}${extra}`);
   await page.waitForFunction(() => window.__TR && window.__TR.state().scene !== 'boot');
   return page;

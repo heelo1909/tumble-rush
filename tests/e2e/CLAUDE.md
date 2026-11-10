@@ -15,7 +15,8 @@ user's Mac, against a **real Supabase project**, with **real key presses**, and 
 
 ## fixtures.js (shared, use it in every spec)
 - `gamePage(browserOrContext, opts)` opens `?test=1&ns=test-<runId>&seed=<n>` and waits for
-  `__TR.state().scene !== 'boot'`.
+  `__TR.state().scene !== 'boot'`. `opts.scene` opens a test scene (no title); `opts.course` (only `test-race`, G3e) keeps
+  the title and makes its Play run the short practice course.
 - Fails the test on any `pageerror` or `console.error` (allow-list only with a logged Decision).
 - `shot(page, name)` saves `.smoke/shots/<STAGE>/<spec>-<name>-<browser>.png`.
 - `waitForState(page, predicate, timeout)` polls `__TR.state()`.
@@ -36,7 +37,7 @@ user's Mac, against a **real Supabase project**, with **real key presses**, and 
 
 ## Spec files (grow by stage)
 `boot.spec.js` (H0) · `probe.spec.js` (H1) · `runner.spec.js` (G1) · `obstacles.spec.js` (G2a, race-clock) · `contact.spec.js` (G2b, contact) ·
-`race.solo.spec.js` (G3) · `course1.spec.js` (G3c and G3d: the whole of course 1, about 90 s a browser, played by `player.js`, the test player: real keys, no dodging, dives through the stretches around a bar or hammer, gives up after 8 falls, 20 s of race time without headway, 150 s of race time or 170 s of wall-clock time, saying where it was; G3e plays it from the title) · `bots.finish.spec.js` (B1) · `multiplayer.rooms.spec.js` (N1) ·
+`race.solo.spec.js` (G3: the race flow on the short `test-race`; the title tests play it through `gamePage(page, { course: 'test-race' })`, a test-mode switch for the title's Play, so a whole race takes seconds) · `course1.spec.js` (G3c to G3e: the whole of course 1, 74 to 87 s a browser, from the title's Play button, played by `player.js`, the test player: real keys, no dodging, dives through the stretches around a bar or hammer, gives up after 8 falls, 20 s of race time without headway, 150 s of race time or 170 s of wall-clock time, saying where it was; then Play again. It is the ONLY spec that plays the whole course: the e2e is about 606 s of the 900 s the protected smoke script allows and one play is about 160 s of it (both browsers), so one more would leave about 130 s and C1 and C2 each add a play: the user raises that limit before a second play, PROGRESS Decisions 79 and 80) · `bots.finish.spec.js` (B1) · `multiplayer.rooms.spec.js` (N1) ·
 `multiplayer.race.spec.js` (N2) · `multiplayer.results.spec.js` (N3) · `shop.spec.js` (P1) ·
 `perf.spec.js` (U1) · `screens.spec.js` (U1).
 
