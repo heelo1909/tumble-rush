@@ -5,8 +5,8 @@
 //    3 tiles wide (Decision 33b: wide enough to need a run-up, not wider than a running jump clears), has a run-up of at
 //    least 5 tiles after the spawn or the last flag, and a fall to the bottom is under 3.5 tiles (Decision 54); no flag is
 //    within reach of a swinging thing (Decision 55); there are 2 pits, a spinning bar and a row of falling tiles that bridges
-//    a pit; the bar's lowest point goes into a standing runner's head by a little (a lesson, not a wall: Decisions 72, 74) and
-//    the ground around it is solid for 8 tiles each way, so a tumble cannot throw the runner into a pit,
+//    a pit; the bar is HARSH (sweeps a standing runner's whole height, turns at least 0.45 a second, clear of the ground: the
+//    user's call, Decision 75) and the ground around it is solid for 8 tiles each way, so a tumble cannot throw the runner into a pit,
 //  - the scene knows course1 and main.js reaches it with ?test=1&scene=course1, with the race flow, and the build has it,
 //  - the e2e spec and the test player are the real thing: real keys (Space and Shift taps, ArrowRight held), no skips, no
 //    teleport, clock, hit or autopilot, a test timeout the player's own limits sit under, the finish and the results time
@@ -30,11 +30,14 @@ const MAX_PIT = 3.5; // a running jump clears about 4.3 tiles (G3b measured 4.33
 const RUN_UP = 5;
 const SAFE_GROUND = 8; // a tumble throws a runner 4 to 6 tiles
 const MAX_FALL = 3.5; // Decision 54
-// How far the bar's lowest point may reach into a standing runner's head, in tiles. At 0.05 it clips only a runner who times
-// it badly; at 0.9 (the first version, pivot 2 tiles over the ground) it swept their whole height and a player who just ran
-// at it was knocked back 6 times. Decision 74 says why this is measured to the bar's true lowest point.
-const MIN_REACH = 0.05;
-const MAX_REACH = 0.45;
+// THE USER'S CALL (2026-11-09, Decision 75): the first bar is harsh and punishing. It sweeps a standing runner's whole height:
+// its lowest point reaches at least 0.8 tiles into their head (the pivot 2 tiles over the ground measures 0.91: a player who
+// just ran at it was hit 6 times, and at 0.5 turns a second, 12), it turns fast (at least 0.45 a second) and it does not dip
+// into the ground. Decisions 72 and 74 had held it to a clip of 0.05 to 0.45 tiles ("a lesson, not a wall"); the user judged
+// that too gentle, so that requirement is reversed and this check changes with a logged reason. Decision 74 says why the
+// reach is measured to the bar's true lowest point.
+const MIN_REACH = 0.8;
+const MIN_RPS = 0.45;
 
 let course;
 try {
@@ -82,14 +85,15 @@ const top = groundTop(Math.round(bar.col));
 // the pivot plus the hypotenuse of half its length and half its thickness (not half the length plus half the thickness).
 const lowest = bar.row + Math.hypot(bar.length / 2, (bar.thick ?? DEFAULT_THICK) / 2);
 const reach = lowest - (top - TUNING.bodyH); // how far that goes into a standing runner's head
-if (reach < MIN_REACH) fail(`the spinning bar's lowest point is only ${reach.toFixed(2)} tiles into a standing runner's head: it does not reach them (it needs ${MIN_REACH} to ${MAX_REACH})`);
-if (reach > MAX_REACH) fail(`the spinning bar reaches ${reach.toFixed(2)} tiles into a standing runner's head: it sweeps their whole height and is a wall, not a lesson (it needs ${MIN_REACH} to ${MAX_REACH})`);
+if (reach < MIN_REACH) fail(`the spinning bar's lowest point is only ${reach.toFixed(2)} tiles into a standing runner's head: a harsh bar sweeps their whole height (it needs at least ${MIN_REACH}; Decision 75)`);
+if (lowest > top + 0.01) fail(`the spinning bar dips into the ground when it hangs down (its lowest point is ${lowest.toFixed(2)}, the ground is at ${top})`);
+if (Math.abs(bar.rps) < MIN_RPS) fail(`the spinning bar turns ${Math.abs(bar.rps)} times a second: a harsh bar turns at least ${MIN_RPS} (Decision 75)`);
 const near = gaps.filter((g) => g.to > bar.col - SAFE_GROUND && g.from < bar.col + SAFE_GROUND);
 if (near.length > 0) fail(`a pit at ${near[0].from} is within ${SAFE_GROUND} tiles of the spinning bar: a tumble could throw the runner into it`);
 const tileTop = tiles.row - (tiles.h ?? TILE_H) / 2;
 const ledge = groundTop(tiles.col - tiles.count / 2 - 1);
 if (Math.abs(tileTop - ledge) > 0.01) fail(`the falling tiles' top is at ${tileTop} but the ground they join is at ${ledge}: the runner would step up or down`);
-out.push(`the bar's lowest point goes ${reach.toFixed(2)} tiles into a standing runner's head and it has solid ground 8 tiles each way, the tiles are flush with the ground`);
+out.push(`the bar is harsh (its lowest point goes ${reach.toFixed(2)} tiles into a standing runner's head, ${Math.abs(bar.rps)} turns a second, clear of the ground) and has solid ground 8 tiles each way, the tiles are flush with the ground`);
 
 // 4. flags where nothing swings (Decision 55): a bar reaches half its length from the pivot, a hammer its arm plus half its head
 for (const o of obstacles.filter((x) => x.type === 'spinning-bar' || x.type === 'swinging-hammer')) {
@@ -118,6 +122,7 @@ if ((spec.match(/^\s*test\(/gm) ?? []).length < 1) fail('course1.spec.js has no 
 if (!/scene:\s*'course1'/.test(spec)) fail('course1.spec.js does not open the course1 scene');
 if (!/keyboard\.down\('ArrowRight'\)/.test(player) || !/keyboard\.press\('Space'\)/.test(player) || !/keyboard\.press\('Shift'\)/.test(player)) fail('player.js does not hold ArrowRight and tap Space and Shift with real keys');
 if (!/race\.phase === 'finished'\)\s*break/.test(player)) fail('player.js does not play until the finish');
+if (!/const zones = hazardZones\(course\)/.test(player) || !/zones\.some\(/.test(player)) fail('player.js does not dive through the stretches around a bar: without that a harsh bar walls it off (Decision 75)');
 const guards = { maxFalls: /race\.falls > maxFalls/, maxRaceTime: /race\.t > maxRaceTime/, stallSeconds: /race\.t - bestAt > stallSeconds/, timeoutMs: /Date\.now\(\) - started > timeoutMs/ };
 for (const [name, re] of Object.entries(guards)) if (!re.test(player)) fail(`player.js has no ${name} guard: a stuck runner must fail fast with a message that says where`);
 const testTimeout = Number(spec.match(/test\.setTimeout\((\d+)\)/)?.[1]);

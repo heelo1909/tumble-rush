@@ -31,7 +31,7 @@ game/
                      them from the course, moves the race-clock ones each step from logic/obstacles.js pose(), steps the
                      others, and hands every contact to the obstacle (`touch`: a hit, a launch, a timer); common.js has the
                      static box and the move with velocity. The rules of the contact four are pure, in logic/contact.js.
-  courses/           course1.json, course2.json, course3.json, test-flat.json, test-race.json (G3a: two 3-tile pits, two flags; G3b: a `finish` at column 66 and a `minTime`; the title's Play runs it until G3d), course1.json is built in pieces: G3c is its opening (112 columns: two 3-tile pits, a spinning bar, a row of 8 falling tiles over a pit, 4 flags, a finish at column 101 and a minTime of 8, reached with ?test=1&scene=course1), G3d finishes it,
+  courses/           course1.json, course2.json, course3.json, test-flat.json, test-race.json (G3a: two 3-tile pits, two flags; G3b: a `finish` at column 66 and a `minTime`; the title's Play runs it until G3d), course1.json is built in pieces: G3c is its opening (112 columns: two 3-tile pits, a HARSH spinning bar (it sweeps the runner's whole height at 0.5 turns a second: the user's call, PROGRESS Decision 75), a row of 8 falling tiles over a pit, 4 flags, a finish at column 101 and a minTime of 8, reached with ?test=1&scene=course1), G3d finishes it,
                      test-gallery.json (8 bays: the four race-clock
                      obstacles, then pad, seesaw, conveyor, tiles; teleport(i) stands the runner at the start of bay i)
   fx/                shake, dust, confetti, banners

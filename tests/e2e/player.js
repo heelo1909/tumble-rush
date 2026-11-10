@@ -20,6 +20,25 @@ export const JUMP_AT = 0.6;
 /** ...and still clears a 3-tile pit when the poll sees the runner this far past the edge (the feet stop counting as on the ground about 0.34 past it). */
 export const JUMP_LATE = 0.25;
 
+/** A dive can be tapped again this many seconds of race time after the last one (the cooldown is 0.6 s: tuning.js diveCooldown). */
+export const DIVE_EVERY = 0.65;
+
+/**
+ * Where a runner dives through instead of running: the stretches around a bar or a hammer, from well before it (a hit
+ * throws a runner back about 4.5 tiles) to just past it. A dive crosses ground at 11 tiles a second against 6.5 for a
+ * run, and a hit leaves a second of immunity, so diving through is how a kid beats these. In tiles, left to right.
+ * @param {any} course the course JSON
+ * @returns {{from: number, to: number}[]}
+ */
+export function hazardZones(course) {
+  return (course.obstacles ?? [])
+    .filter((o) => o.type === 'spinning-bar' || o.type === 'swinging-hammer')
+    .map((o) => {
+      const reach = o.type === 'spinning-bar' ? o.length / 2 : o.length + (o.head ?? 1.4) / 2;
+      return { from: o.col - reach - 8, to: o.col + reach + 1 };
+    });
+}
+
 /**
  * Play until the line is crossed (`race.phase === 'finished'`), then let go of the keys.
  * @param {import('@playwright/test').Page} page the game, already in the race scene
@@ -33,6 +52,8 @@ export const JUMP_LATE = 0.25;
  */
 export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFalls = 8, maxRaceTime = 60, stallSeconds = 10 } = {}) {
   const pits = pitsToJump(course);
+  const zones = hazardZones(course);
+  let lastDive = -Infinity; // race time of the last dive tapped through a hazard
   const jumped = new Set();
   const taps = { jump: 0, dive: 0 };
   let held = false;
@@ -74,6 +95,11 @@ export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFal
             taps.jump++;
             jumped.add(i);
           }
+        }
+        if (me.mode !== 'tumble' && zones.some((z) => x >= z.from && x <= z.to) && race.t - lastDive >= DIVE_EVERY) {
+          await page.keyboard.press('Shift'); // dive through: faster than a run, and it makes the most of the immunity after a hit
+          taps.dive++;
+          lastDive = race.t;
         }
         if (me.mode === 'tumble') {
           if (!gotUp) {

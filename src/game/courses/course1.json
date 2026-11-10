@@ -17,7 +17,7 @@
     { "col": 78, "row": 9 }
   ],
   "obstacles": [
-    { "type": "spinning-bar", "col": 52, "row": 7.2, "length": 3.6, "rps": 0.3 },
+    { "type": "spinning-bar", "col": 52, "row": 8, "length": 3.6, "rps": 0.5 },
     { "type": "falling-tiles", "col": 66, "row": 10.25, "count": 8 }
   ],
   "finish": { "col": 101 },

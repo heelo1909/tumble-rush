@@ -74,7 +74,8 @@ test('the test player runs the opening of course 1 from the countdown to the res
   expect(finishTime, 'nobody can beat course.minTime').toBeGreaterThanOrEqual(course.minTime);
   expect(finishTime, `a runner who keeps going finishes a course this short inside ${RACE_TIME_LIMIT} s of race time`).toBeLessThan(RACE_TIME_LIMIT);
   // The test player is tolerant on purpose (it gives up only after 8 falls) and does not dodge, so the e2e allows a few
-  // misses; the bar that must not become a wall again is held by the smoke check (Decisions 72 and 74), not by this count.
+  // misses (the bar throws it back toward the start, never into a pit: the ground around it is solid). How harsh the bar is
+  // is held by the smoke check (Decision 75), not by this count; the hits it costs are annotated above.
   expect(done.race.falls, 'a player that jumps every pit falls at most a couple of times').toBeLessThanOrEqual(3);
 
   expect(ofType(events, 'go'), 'one GO').toHaveLength(1);

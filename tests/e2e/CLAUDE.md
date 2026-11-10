@@ -36,7 +36,7 @@ user's Mac, against a **real Supabase project**, with **real key presses**, and 
 
 ## Spec files (grow by stage)
 `boot.spec.js` (H0) · `probe.spec.js` (H1) · `runner.spec.js` (G1) · `obstacles.spec.js` (G2a, race-clock) · `contact.spec.js` (G2b, contact) ·
-`race.solo.spec.js` (G3) · `course1.spec.js` (G3c: the opening of course 1, played by `player.js`, the test player: real keys, no dodging, gives up after 8 falls, 10 s of race time without headway, 60 s of race time or 45 s of wall-clock time, saying where it was; G3d plays the whole course from the title) · `bots.finish.spec.js` (B1) · `multiplayer.rooms.spec.js` (N1) ·
+`race.solo.spec.js` (G3) · `course1.spec.js` (G3c: the opening of course 1, played by `player.js`, the test player: real keys, no dodging, dives through the stretches around a bar or hammer, gives up after 8 falls, 10 s of race time without headway, 60 s of race time or 45 s of wall-clock time, saying where it was; G3d plays the whole course from the title) · `bots.finish.spec.js` (B1) · `multiplayer.rooms.spec.js` (N1) ·
 `multiplayer.race.spec.js` (N2) · `multiplayer.results.spec.js` (N3) · `shop.spec.js` (P1) ·
 `perf.spec.js` (U1) · `screens.spec.js` (U1).
 
