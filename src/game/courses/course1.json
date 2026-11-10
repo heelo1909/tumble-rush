@@ -1,25 +1,66 @@
 {
   "id": "course1",
   "tile": 48,
-  "cols": 112,
+  "cols": 414,
   "rows": 12,
   "spawn": { "col": 2, "row": 9 },
   "ground": [
     { "col": 0, "row": 10, "w": 18, "h": 2 },
     { "col": 21, "row": 10, "w": 15, "h": 2 },
     { "col": 39, "row": 10, "w": 23, "h": 2 },
-    { "col": 70, "row": 10, "w": 42, "h": 2 }
+    { "col": 70, "row": 10, "w": 29, "h": 2 },
+    { "col": 102, "row": 10, "w": 13, "h": 2 },
+    { "col": 118, "row": 10, "w": 6, "h": 2 },
+    { "col": 127, "row": 10, "w": 14, "h": 2 },
+    { "col": 149, "row": 10, "w": 9, "h": 2 },
+    { "col": 161, "row": 10, "w": 5, "h": 2 },
+    { "col": 176, "row": 10, "w": 12, "h": 2 },
+    { "col": 191, "row": 10, "w": 4, "h": 2 },
+    { "col": 203, "row": 10, "w": 4, "h": 2 },
+    { "col": 210, "row": 10, "w": 14, "h": 2 },
+    { "col": 236, "row": 10, "w": 8, "h": 2 },
+    { "col": 247, "row": 10, "w": 10, "h": 2 },
+    { "col": 263, "row": 10, "w": 5, "h": 2 },
+    { "col": 276, "row": 10, "w": 4, "h": 2 },
+    { "col": 283, "row": 10, "w": 14, "h": 2 },
+    { "col": 300, "row": 10, "w": 5, "h": 2 },
+    { "col": 308, "row": 10, "w": 5, "h": 2 },
+    { "col": 316, "row": 10, "w": 12, "h": 2 },
+    { "col": 338, "row": 10, "w": 10, "h": 2 },
+    { "col": 351, "row": 10, "w": 7, "h": 2 },
+    { "col": 366, "row": 10, "w": 6, "h": 2 },
+    { "col": 375, "row": 10, "w": 12, "h": 2 },
+    { "col": 399, "row": 10, "w": 15, "h": 2 }
   ],
   "checkpoints": [
     { "col": 28, "row": 9 },
     { "col": 44, "row": 9 },
     { "col": 58, "row": 9 },
-    { "col": 78, "row": 9 }
+    { "col": 78, "row": 9 },
+    { "col": 108, "row": 9 },
+    { "col": 130, "row": 9 },
+    { "col": 151, "row": 9 },
+    { "col": 177, "row": 9 },
+    { "col": 214, "row": 9 },
+    { "col": 251, "row": 9 },
+    { "col": 288, "row": 9 },
+    { "col": 320, "row": 9 },
+    { "col": 342, "row": 9 },
+    { "col": 379, "row": 9 }
   ],
   "obstacles": [
     { "type": "spinning-bar", "col": 52, "row": 8, "length": 3.6, "rps": 0.5 },
-    { "type": "falling-tiles", "col": 66, "row": 10.25, "count": 8 }
+    { "type": "falling-tiles", "col": 66, "row": 10.25, "count": 8 },
+    { "type": "falling-tiles", "col": 145, "row": 10.25, "count": 8 },
+    { "type": "falling-tiles", "col": 171, "row": 10.25, "count": 10 },
+    { "type": "falling-tiles", "col": 199, "row": 10.25, "count": 8 },
+    { "type": "falling-tiles", "col": 230, "row": 10.25, "count": 12 },
+    { "type": "falling-tiles", "col": 260, "row": 10.25, "count": 6 },
+    { "type": "falling-tiles", "col": 272, "row": 10.25, "count": 8 },
+    { "type": "falling-tiles", "col": 333, "row": 10.25, "count": 10 },
+    { "type": "falling-tiles", "col": 362, "row": 10.25, "count": 8 },
+    { "type": "falling-tiles", "col": 393, "row": 10.25, "count": 12 }
   ],
-  "finish": { "col": 101 },
-  "minTime": 8
+  "finish": { "col": 405 },
+  "minTime": 36
 }

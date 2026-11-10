@@ -127,13 +127,22 @@ const guards = { maxFalls: /race\.falls > maxFalls/, maxRaceTime: /race\.t > max
 for (const [name, re] of Object.entries(guards)) if (!re.test(player)) fail(`player.js has no ${name} guard: a stuck runner must fail fast with a message that says where`);
 const testTimeout = Number(spec.match(/test\.setTimeout\((\d+)\)/)?.[1]);
 const playerWall = Number(player.match(/timeoutMs\s*=\s*(\d+)/)?.[1]);
-if (!(testTimeout > 0 && testTimeout <= 90000)) fail(`course1.spec.js sets a test timeout of ${testTimeout} ms: it needs one, at most 90000 (the race takes about 25 s)`);
+// G3d (Decision 77): this said at most 90000 while the spec played only the opening (about 25 s). The whole course takes the
+// player about 82 s of race time and 90 s all told, so the ceiling is 200000 (what the spec sets); the point is unchanged: a
+// test timeout that is there, and not far above what the race needs, with the player's own limit under it.
+if (!(testTimeout > 0 && testTimeout <= 200000)) fail(`course1.spec.js sets a test timeout of ${testTimeout} ms: it needs one, at most 200000 (the whole course takes about 90 s)`);
+// The stall guard is how a runner that cannot get past something fails fast. It was 10 s until the first measurement of its
+// margin (G3d) found a legitimate run using all of it: 10.0 s at the harsh bar, the same in both browsers (PROGRESS Decision 78),
+// so it is 20 s now. It is NOT to be raised further to get past the bar (that is loosening a test: tests/e2e/CLAUDE.md rule
+// 6): a bar that stalls the player for longer gets a new `phase` in the data.
+const stallLimit = Number(player.match(/stallSeconds\s*=\s*(\d+)/)?.[1]);
+if (!(stallLimit > 0 && stallLimit <= 20)) fail(`player.js lets the runner go ${stallLimit} s of race time without headway: at most 20 (do not raise it to get past a bar: give the bar another phase)`);
 if (!(playerWall > 0 && playerWall < testTimeout)) fail(`the player's wall-clock limit (${playerWall} ms) is not under the test timeout (${testTimeout} ms): its own message could never show`);
 if (!/formatRaceTime\(finishTime\)/.test(spec) || !/'checkpoint'\)\.map\(\(e\) => e\.data\.index\)\)\.toEqual\(course\.checkpoints\.map/.test(spec)) fail('course1.spec.js does not check the time on the results or that every flag was passed in order');
 if (!/toBeGreaterThanOrEqual\(course\.minTime\)/.test(spec)) fail('course1.spec.js does not check the finish time against minTime');
 if (!/done\.race\.falls[^;]*\)\.toBeLessThanOrEqual\(\d+\)/.test(spec)) fail('course1.spec.js does not bound the falls of the test player');
 if (!/await settle\(page\);\s*await shot\(page, 'countdown'/.test(spec)) fail('course1.spec.js takes its first shot without waiting for the new scene to be drawn');
-for (const name of ['over-the-first-pit', 'approaching-the-bar', 'on-the-tiles']) if (!spec.includes(`maybeShot('${name}'`)) fail(`course1.spec.js takes no "${name}" shot`);
+for (const name of ['over-the-first-pit', 'past-the-bar', 'on-the-tiles']) if (!spec.includes(`maybeShot('${name}'`)) fail(`course1.spec.js takes no "${name}" shot`);
 for (const name of ['finish', 'results']) if (!spec.includes(`shot(page, '${name}'`)) fail(`course1.spec.js takes no "${name}" shot`);
 out.push('e2e: a test player with real keys from the countdown to the results, flags in order, no shortcuts, no skips, its own limits under the test timeout');
 

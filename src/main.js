@@ -8,7 +8,7 @@ import { createHud } from './ui/hud.js';
 import { createResults } from './ui/results.js';
 import { createTitle } from './ui/title.js';
 
-// The course the title's Play button runs. G3b plays the short test course; G3d swaps this one constant for course 1.
+// The course the title's Play button runs. G3b plays the short test course; G3e swaps this one constant for course 1.
 const SOLO_COURSE = 'test-race';
 
 const params = new URLSearchParams(window.location.search);

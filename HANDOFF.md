@@ -288,9 +288,16 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   pits to jump, a spinning bar, a row of falling tiles; split from the old G3c, PROGRESS Decision 70) and a test player in
   `tests/e2e` that finishes it with real keys. Reached with `?test=1&scene=course1`; the title's Play is unchanged.
   DoD: e2e plays the opening with real keys from the countdown to the results, in both browsers, with screenshots.
-- [ ] **G3d: Course 1, the rest, and the way in.** The rest of course 1 (the other obstacle it teaches, then the mix; 60–90 s
-  in all, `minTime` worked out allowing for its belts and pads, PROGRESS Decision 68), the title's Play button starts it, the
-  test player finishes the whole course. DoD: e2e plays course 1 with real keys from the title through the countdown to the results.
+- [x] **G3d: Course 1, the rest.** The rest of course 1: the mix (the falling tiles and the pits again, in new orders; the
+  harsh bar of the opening appears once, and a second one waits for bots that read poses, PROGRESS Decisions 75 and 77:
+  course 1 teaches two obstacles, §5.3 says 2–3, and courses 2 and 3 bring the others), 60–90 s in all for a decent
+  player, the finish moved to the end, `minTime` (no belts or pads yet, so distance over dive speed still holds: PROGRESS
+  Decision 68 waits for the first course that has them); split from the old G3d, PROGRESS Decision 76. Reached with
+  `?test=1&scene=course1`; the title's Play is unchanged. DoD: e2e plays the whole of course 1 with real keys from the
+  countdown to the results, in both browsers, with screenshots.
+- [ ] **G3e: Course 1, the way in.** The title's Play button starts course 1 (`SOLO_COURSE`), and the tests that play from
+  the title (race.solo.spec.js) and the test player go through it. DoD: e2e plays course 1 with real keys from the title
+  through the countdown to the results, with screenshots; player-visible, so the product-reviewer runs.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.
 - [ ] **N1: Rooms [design].** Create/join by code or link, Presence seats, bots fill seats, a friend

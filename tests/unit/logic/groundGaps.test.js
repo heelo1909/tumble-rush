@@ -46,8 +46,9 @@ describe('groundGaps', () => {
     expect(groundGaps(course([null, ...floor, ...garbage]))).toEqual(clean);
   });
 
-  it('finds the pits of course 1: the two to jump and the one the falling tiles cover', () => {
-    expect(groundGaps(course1)).toEqual([
+  it('finds the pits of the opening of course 1: the two to jump and the one the falling tiles cover', () => {
+    // course 1 goes on after its opening (G3d): the first three gaps are still the opening's
+    expect(groundGaps(course1).slice(0, 3)).toEqual([
       { from: 18, to: 21, width: 3 },
       { from: 36, to: 39, width: 3 },
       { from: 62, to: 70, width: 8 },
@@ -81,7 +82,12 @@ describe('pitsToJump', () => {
     expect(pitsToJump(course(floor, [{ type: 'conveyor', col: 12, row: 10, w: 4, dir: 1 }, { type: 'falling-tiles', col: 'x', count: 4 }, null]))).toEqual([pit]);
   });
 
-  it('gives the two pits of course 1 and not the tile row', () => {
-    expect(pitsToJump(course1).map((p) => p.from)).toEqual([18, 36]);
+  it('gives the pits of course 1 to jump, and not the rows of tiles that bridge a pit', () => {
+    const froms = pitsToJump(course1).map((p) => p.from);
+    expect(froms.slice(0, 2), 'the opening: the two pits, and not the tile row at 62').toEqual([18, 36]);
+    expect(froms).not.toContain(62);
+    // every gap of the course is either a pit to jump or one that a row of tiles covers end to end
+    const rows = course1.obstacles.filter((o) => o.type === 'falling-tiles');
+    expect(froms.length + rows.length).toBe(groundGaps(course1).length);
   });
 });

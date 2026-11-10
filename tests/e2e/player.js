@@ -48,9 +48,11 @@ export function hazardZones(course) {
  *   `timeoutMs` is wall-clock and must stay under the test's own timeout, so that this message is the one that shows;
  *   `maxFalls` is how many falls it takes before it gives up; `maxRaceTime` is the race clock (seconds) it may not pass;
  *   `stallSeconds` is how many seconds of race time it may go without getting 0.5 tiles past its furthest point
- * @returns {Promise<{ polls: number, taps: { jump: number, dive: number } }>}
+ * @returns {Promise<{ polls: number, taps: { jump: number, dive: number }, longestStall: number }>} `longestStall` is the
+ *   longest stretch of race time (seconds) it went without getting 0.5 tiles past its furthest point: the margin under
+ *   the `stallSeconds` guard, which the spec prints
  */
-export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFalls = 8, maxRaceTime = 60, stallSeconds = 10 } = {}) {
+export async function playRace(page, course, { onTick, timeoutMs = 170000, maxFalls = 8, maxRaceTime = 150, stallSeconds = 20 } = {}) {
   const pits = pitsToJump(course);
   const zones = hazardZones(course);
   let lastDive = -Infinity; // race time of the last dive tapped through a hazard
@@ -61,6 +63,7 @@ export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFal
   let polls = 0;
   let bestX = -Infinity; // the furthest the runner has got
   let bestAt = 0; // and the race time it got there
+  let longestStall = 0;
   const started = Date.now();
   try {
     for (;;) {
@@ -81,8 +84,10 @@ export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFal
           bestX = x;
           bestAt = race.t;
         } else if (race.t - bestAt > stallSeconds) {
+          longestStall = Math.max(longestStall, race.t - bestAt);
           throw new Error(`the test player has made no headway past x ${bestX.toFixed(1)} for ${stallSeconds} s of race time: the keys may not be reaching the game (${where})`);
         }
+        longestStall = Math.max(longestStall, race.t - bestAt);
         if (!held) {
           await page.keyboard.down('ArrowRight');
           held = true;
@@ -120,5 +125,5 @@ export async function playRace(page, course, { onTick, timeoutMs = 45000, maxFal
     // letting go must never hide why the player stopped: if the page is already gone, the first error is the one to see
     if (held) await page.keyboard.up('ArrowRight').catch(() => {});
   }
-  return { polls, taps };
+  return { polls, taps, longestStall };
 }
