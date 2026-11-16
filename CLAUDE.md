@@ -17,10 +17,10 @@ red tests + code, ~5 min smoke check + proof, ~8 min targeted smoke + shots, ~7 
 ## Closing a stage (the Stop hook enforces 3, 6, 7)
 1. Permanent check `smoke_checks/<id>_<name>.mjs`, proved red with **at most ~5 mutations** (the ones that matter), each restored in a `finally`.
 2. **Smoke, light or full.** Count stages in the PROGRESS list from the last full run (that stage = 0):
-   - **Stages 1–4 after a full run:** `npm run smoke -- --targeted=<the e2e specs this stage touched>` → `SMOKE: TARGETED`
+   - **Every stage except the last:** `npm run smoke -- --targeted=<the e2e specs this stage touched>` → `SMOKE: TARGETED`
      (lint, unit, build, every smoke check, boot.spec.js + those specs, real Chromium + WebKit on real Supabase).
-   - **Every 5th stage, and always D1 and R1:** `npm run smoke` → `SMOKE: PASS` (the whole e2e suite). A failure here is
-     fixed in this stage before closing, so a regression is at most 4 stages old.
+   - **Only the final stage, R1, after everything else is done:** `npm run smoke` → `SMOKE: PASS` (the whole e2e suite).
+     A regression from earlier stages shows up here, so R1 may need fix-up work; keep the targeted specs honest meanwhile.
    The Stop gate enforces this (scripts/harness_common.mjs `stopGate`). Run each smoke once on the final tree.
 3. Look at `.smoke/shots/<id>/` yourself.
 4. **Review panel, in parallel, ONE round:** `verifier` + `code-reviewer` always; `product-reviewer` only if players can

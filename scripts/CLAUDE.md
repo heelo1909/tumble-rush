@@ -21,8 +21,8 @@ Then:
 - `--live` runs only step 6 against `BASE_URL` = the Pages URL from `package.json` `homepage`.
 - `--targeted=a.spec.js,b.spec.js` runs steps 1–5 and, for step 6, only `boot.spec.js` plus those specs; result `TARGETED`,
   saved to `.smoke/last-targeted.json` (never over `last-run.json`, which stays the last FULL run). `stopGate` accepts a
-  TARGETED run for the current code unless the last full run was 5 or more stages back in the PROGRESS list, or the stage
-  is D1 or R1 (`FULL_EVERY`, `ALWAYS_FULL` in harness_common.mjs).
+  TARGETED run for the current code on every stage except R1, which needs a full PASS (`FULL_EVERY` is "never" and
+  `ALWAYS_FULL` is `['r1']` in harness_common.mjs; set `FULL_EVERY` to 5 for a full run every 5 stages again).
 
 ## progress_view.mjs
 Parses PROGRESS.md: `currentStatus()`, `stages()` → `[{id,title,done}]`, `nextStage()`, `latestLogEntry()`.
