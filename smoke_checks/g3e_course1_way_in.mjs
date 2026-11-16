@@ -8,8 +8,8 @@
 //  - tests/e2e/race.solo.spec.js (the G3b title tests) asks for the short course with `course: 'test-race'` for the test that
 //    plays a whole race, and checks that Play and Enter, with no switch, run course 1 (its flags, not the short course's),
 //  - the WHOLE of course 1 is played once per browser, by the test player in course1.spec.js and nowhere else: one play is
-//    74 s (chromium) and 87 s (webkit) of the e2e, which is about 606 s of the 900 s limit of the protected smoke script
-//    (measured: PROGRESS Decision 80), so one more play leaves about 130 s that C1 will use, and two more go over; any other
+//    74 s (chromium) and 87 s (webkit) of the e2e, which is most of the 700 s of the e2e (606 s when G3e closed, about 700 s after G3f's restart tests) against the 900 s limit of the protected smoke script
+//    (measured: PROGRESS Decision 80), so one more play leaves about 40 s, C1 will use that, and two more go over; any other
 //    spec that plays it has to change this check with a logged reason, after the user has raised the limit.
 // That the whole course is really played from the title, in both browsers, is proved by tests/e2e/course1.spec.js.
 import { readdirSync } from 'node:fs';
@@ -95,7 +95,7 @@ out.push('course1.spec.js: title, Play, the whole course by the test player, Pla
 const specs = readdirSync(join(ROOT, 'tests/e2e')).filter((f) => f.endsWith('.spec.js'));
 const players = specs.filter((f) => /\bplayRace\(/.test(code(`tests/e2e/${f}`)));
 const importers = specs.filter((f) => /\.\/player\.js/.test(code(`tests/e2e/${f}`)));
-if (players.length !== 1 || players[0] !== 'course1.spec.js' || importers.length !== 1 || importers[0] !== 'course1.spec.js') fail(`the whole of a course is played by the test player in ${JSON.stringify(players)} (imported by ${JSON.stringify(importers)}): exactly one spec, course1.spec.js, may (the e2e is about 606 s of the 900 s the protected smoke script allows, and one play is about 160 s of it: PROGRESS Decisions 79 and 80)`);
+if (players.length !== 1 || players[0] !== 'course1.spec.js' || importers.length !== 1 || importers[0] !== 'course1.spec.js') fail(`the whole of a course is played by the test player in ${JSON.stringify(players)} (imported by ${JSON.stringify(importers)}): exactly one spec, course1.spec.js, may (the e2e is about 700 s of the 900 s the protected smoke script allows, and one play is about 160 s of it: PROGRESS Decisions 79, 80 and 83)`);
 if ((code('tests/e2e/course1.spec.js').match(/\bplayRace\(/g) ?? []).length !== 1) fail('course1.spec.js plays the course more than once: a second play per browser is about 90 s more of the 900 s e2e limit');
 out.push('one whole-course play per browser (course1.spec.js)');
 

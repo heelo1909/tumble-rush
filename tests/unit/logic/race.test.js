@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newRace, stepRace, controlsLive } from '../../../src/logic/race.js';
+import { newRace, stepRace, controlsLive, canRestart } from '../../../src/logic/race.js';
 import { countdownLabel } from '../../../src/logic/clock.js';
 import { TUNING, STEP } from '../../../src/logic/tuning.js';
 
@@ -103,6 +103,32 @@ describe('controlsLive: may the runner steer?', () => {
     const fell = run(racing(), STEP, FALLEN).state;
     expect(fell.out).not.toBeNull();
     expect(controlsLive(fell)).toBe(false);
+  });
+});
+
+describe('canRestart: may the race be started over (the R key, G3f)?', () => {
+  it('yes in the countdown, yes while racing, yes while waiting to be put back after a fall', () => {
+    expect(canRestart(newRace())).toBe(true);
+    expect(canRestart(racing())).toBe(true);
+    const fell = run(racing(), STEP, FALLEN).state;
+    expect(fell.out).not.toBeNull();
+    expect(canRestart(fell)).toBe(true);
+  });
+
+  it('not once the runner has finished: the results have Play again, and a kid still mashing keys must not lose them', () => {
+    const c = { ...course(), finish: { col: 40 } };
+    const done = run(racing(), STEP, { x: 40.2, y: 9.45 }, c).state;
+    expect(done.phase).toBe('finished');
+    expect(canRestart(done)).toBe(false);
+    // and it stays false for as long as the finished race stands still
+    expect(canRestart(run(done, 5, ON_GROUND, c).state)).toBe(false);
+  });
+
+  it('is a plain question about the state: it changes nothing', () => {
+    const s = racing();
+    const copy = JSON.parse(JSON.stringify(s));
+    canRestart(s);
+    expect(s).toEqual(copy);
   });
 });
 

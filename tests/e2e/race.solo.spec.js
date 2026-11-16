@@ -11,7 +11,7 @@ import { formatRaceTime } from '../../src/logic/clock.js';
 // the title, on the same short course. G3e: the title's Play now runs course 1, played whole by course1.spec.js (74 to
 // 87 s a browser). The first title test below plays a WHOLE race, by the short course's pit coordinates, so it asks for
 // that course with `?course=test-race` (a test-mode switch for the title's Play, PROGRESS Decision 80): it cannot play
-// course 1 at all, and rewriting it for the test player would add another 160 s to an e2e that is at 606 s of a 900 s limit
+// course 1 at all, and rewriting it for the test player would add another 160 s to an e2e that was at 606 s of a 900 s limit (about 700 s after G3f)
 // only the user can raise. The play-again test reaches its races through a test scene, and the third only presses Enter.
 // Where a test only STARTS a race from the title, it checks that Play runs course 1 (its flags are the proof: the short
 // course has 2).

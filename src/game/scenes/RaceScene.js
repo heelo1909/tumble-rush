@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { TILE, STEP, TUNING } from '../../logic/tuning.js';
 import { validateCourse } from '../../logic/course.js';
 import { NO_INTENT } from '../../logic/runner.js';
-import { newRace, stepRace, controlsLive } from '../../logic/race.js';
+import { newRace, stepRace, controlsLive, canRestart } from '../../logic/race.js';
 import { countdownLabel, formatRaceTime, raceTenth } from '../../logic/clock.js';
 import { CAT } from '../config.js';
 import { Runner } from '../runner/Runner.js';
@@ -16,6 +16,7 @@ import course1 from '../courses/course1.json';
 
 const COURSES = { 'test-flat': testFlat, 'test-gallery': testGallery, 'test-race': testRace, course1 };
 const MAX_EVENTS = 500;
+const HINT = 'Arrows / A D run   Up / W / Space jump   Shift dive'; // the keys line at the top left; a race adds "R restart" (G3f) until the finish
 const CAMERA_LEAD = W * 0.1; // the camera's centre sits this far ahead of the runner, so there is more to see in front
 
 /**
@@ -71,7 +72,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.hint = this.add.text(16, 12, '', { fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff', lineSpacing: 4 })
       .setScrollFactor(0).setDepth(50).setStroke('#1b1b2f', 4);
-    this.hint.setText('Arrows / A D run   Up / W / Space jump   Shift dive');
+    this.hint.setText(this.flow ? `${HINT}   R restart` : HINT);
     this.dbg = { mode: '', speed: -1, grounded: null }; // what the debug line shows now: rewrite the text only when it changes
     // The debug line is for the free-run test courses; the race flow shows only what a player should see (Decision 32g).
     this.debug = this.flow ? null : this.add.text(16, 64, '', { fontFamily: 'monospace', fontSize: '16px', color: '#ffd23f' })
@@ -83,7 +84,12 @@ export class RaceScene extends Phaser.Scene {
     // When the scene stops (play again, back to the title) it lets go of the keyboard and clears the HUD (G3b): Phaser
     // removes the Key objects itself but not the browser-level captures, so without this the title would never get
     // W, A, D, Space or the arrows again.
+    // R starts a solo race over (G3f). It is not a runner control, so it is not in LocalControl (bots and the net never get
+    // it): the scene decides whether it may (logic/race.js canRestart) and says so in plain data, and main.js starts the
+    // scene again, the way Play again does. R is not captured: the browser keeps it.
+    if (this.flow) this.input.keyboard.on('keydown-R', this.onRestartKey, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.keyboard?.off('keydown-R', this.onRestartKey, this);
       this.control.destroy();
       this.hudView?.clear();
     });
@@ -97,6 +103,25 @@ export class RaceScene extends Phaser.Scene {
     this.matter.world.on(Phaser.Physics.Matter.Events.COLLISION_ACTIVE, this.onContact, this);
 
     this.registry.set('scene', 'race');
+  }
+
+  /**
+   * The R key: ask main.js to start the race over. Ctrl, Cmd and Alt are the browser's own shortcuts (Ctrl+R reloads the
+   * page), and a held key repeats keydown, so neither counts; only a race with the flow on, and not a finished one.
+   * Shift is deliberately NOT a guard: it is the held dive key, and R has to work while diving.
+   *
+   * SOLO ONLY. `flow` stands in for "solo" until N1 and N2 exist (PROGRESS Decision 83 e): a room race has the flow on too,
+   * and R there would restart only this laptop's scene, advertise a key the room must not have (the hint line is tied to
+   * `flow` as well), and `startRace` is not `playSolo` (whatever bots or the net set up outside create() would not be
+   * redone). N1 and N2 must split the key and the hint from `flow`. Phaser listens on `window`, so a key typed into an
+   * <input> (the room-code box) would reach this too: ignore events whose target is a field before one can be on screen.
+   * A restart is idempotent today; if it ever gains a side effect (a counter, a message), dedupe on `e.timeStamp`, because
+   * Phaser can replay an earlier keydown of the same frame to a listener registered after it.
+   */
+  onRestartKey(e) {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!this.flow || !canRestart(this.race)) return;
+    this.game.events.emit('restart-race', { course: this.course.id });
   }
 
   /** Physics time in seconds: fixed steps, not frames, so it matches on every laptop. Negative in the countdown. */
@@ -164,6 +189,7 @@ export class RaceScene extends Phaser.Scene {
     } else if (e.type === 'finish') {
       this.logEvent('finish', { time: Math.round(e.time * 1000) / 1000, x });
       this.hudView?.toast('Finished!');
+      this.hint.setText(HINT); // R does nothing from the line on (the results have Play again): do not advertise it
       this.overAt = this.steps + Math.round(TUNING.resultsDelay / STEP);
     }
   }

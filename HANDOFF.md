@@ -123,6 +123,10 @@ this API plus real keyboard input, never reaching into Phaser internals.
 ### 5.1 The runner
 - Controls: ←/→ or A/D to run, ↑/W/Space to jump, Shift to dive (a forward lunge that also gets you
   up after a fall). Same layout for everyone, and no key remapping in v1.
+- R starts a solo race over from the 3-2-1 (G3f, added at the user's OK on 2026-11-15, the way out of an 80 s course):
+  not once the runner has finished (the results have Play again), not with Ctrl, Cmd or Alt held (that is the browser's
+  reload), and holding it restarts once. Not a runner control: bots and the net never see it. Whether a restart in a
+  room exists at all is for the N1 and N2 design notes.
 - A Matter body: a rounded capsule with fixed rotation while upright. A big hit (hammer, spinning
   bar) "tumbles" it: rotation is unlocked for 0.8 s, then it springs back upright. That's the
   signature feel, so tune it until it's funny.
@@ -301,6 +305,14 @@ One prompt = one stage (about 30 min). Tick here and in PROGRESS.md.
   switch, PROGRESS Decision 80) so the e2e stays under the smoke script's 900 s limit, and check that Play and Enter, with no
   switch, run course 1. DoD: e2e plays course 1 with real keys from the title through the countdown to the results, with
   screenshots; player-visible, so the product-reviewer runs.
+- [x] **G3f: Solo restart key.** R starts a solo race over (§5.1): the way out of an 80 s course, which until now was
+  reloading the page. Asked for by the G3e product review and answered "Yes, add R" by the user on 2026-11-15 (PROGRESS
+  Decision 81 e); it is a feature of its own, so it is not in G3e. Rule in `src/logic/race.js` (`canRestart`) with unit
+  tests, the key in `RaceScene`, `restart-race` on `game.events`, main.js answers with the same `startRace` as play again,
+  the HUD hint says "R restart". DoD: e2e with real keys on the short course: R in the middle of a race (after a fall and a
+  flag) gives a new countdown with no falls, no flag and the runner at the start, and the keys work again; R in the
+  countdown starts it over; R after the finish, with Ctrl or Cmd, and on the title do nothing; holding R restarts once;
+  with screenshots; player-visible, so the product-reviewer runs.
 - [ ] **B1: Bots.** A bot brain that reliably finishes course 1 (waits for gaps, jumps pads). Three
   bots + the player race locally. DoD: on 10 seeded runs, bots finish 10/10 within 2× `minTime`.
 - [ ] **N1: Rooms [design].** Create/join by code or link, Presence seats, bots fill seats, a friend

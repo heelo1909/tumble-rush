@@ -69,6 +69,8 @@ const game = new Phaser.Game({
       // listening from preBoot, before any scene exists, so a 'title-shown' can never be missed (no Play button at all)
       g.events.on('title-shown', () => title.show());
       g.events.on('race-over', ({ time, falls }) => results.show({ time: formatRaceTime(time), falls: fallsLabel(falls) }));
+      // R in a solo race (G3f): the scene has decided it may be started over; this is the same start as Play again
+      g.events.on('restart-race', () => startRace());
     },
   },
 });

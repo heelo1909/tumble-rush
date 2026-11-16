@@ -32,6 +32,16 @@ export function controlsLive(state) {
 }
 
 /**
+ * May the race be started over (the R key, G3f)? Yes in the countdown, while racing and while waiting to be put back
+ * after a fall. No once the runner has finished: the results offer Play again, and a kid still hammering keys at the
+ * line must not lose them (PROGRESS Decision 63).
+ * @param {RaceState} state
+ */
+export function canRestart(state) {
+  return state.phase !== 'finished';
+}
+
+/**
  * One fixed step of the race.
  * @param {RaceState} state
  * @param {{x: number, y: number}} runner the runner's centre, in tiles
